@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Statistik & Analitik - Admin Posko UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3, Chart.js & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Guard: Khusus Admin Posko -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth(true);</script>
+</head>
+
+<body class="bg-light">
+
+  <!-- HEADER & SIDEBAR UMY KRS STYLE -->
+  <div id="navbar-container"></div>
+
+  <!-- KONTEN UTAMA DASHBOARD -->
+  <main class="umy-main-content">
+    <div class="container-fluid">
+
+      <!-- HEADER ADMIN -->
+      <div class="card bg-dark text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-purple rounded-pill px-3 py-1.5">
+                <i class="bi bi-shield-check me-1"></i> Executive Admin Analytics
+              </span>
+              <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-2.5 py-1 font-monospace">
+                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> LIVE SYSTEM
+              </span>
+            </div>
+            <h3 class="fw-bold mb-1">Dashboard Statistik & Monitoring Kampus</h3>
+            <p class="text-white opacity-75 small mb-0">Visualisasi data laporan kehilangan, analitik persebaran gedung
+              UMY, dan logistik inventaris posko keamanan.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- METRIK KPI 6 KOLOM -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="card p-3 border-0 text-center shadow-sm rounded-4 bg-white h-100">
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">LAPORAN HILANG</small>
+            <h3 class="fw-bold text-primary mb-0 mt-1" id="stat-lost">-</h3>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="card p-3 border-0 text-center shadow-sm rounded-4 bg-white h-100">
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">BARANG DI POSKO</small>
+            <h3 class="fw-bold text-success mb-0 mt-1" id="stat-found">-</h3>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="card p-3 border-0 text-center shadow-sm rounded-4 bg-white h-100">
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">AI MATCH ACCURACY</small>
+            <h3 class="fw-bold text-purple mb-0 mt-1" id="stat-rate">-</h3>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="card p-3 border-0 text-center shadow-sm rounded-4 bg-white h-100">
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">TINGKAT KLAIM (RESOLVED)</small>
+            <h3 class="fw-bold text-info mb-0 mt-1" id="stat-resolved-rate">-</h3>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="card p-3 border-0 text-center shadow-sm rounded-4 bg-white h-100">
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">BUTUH VALIDASI</small>
+            <h3 class="fw-bold text-warning mb-0 mt-1" id="stat-pending">-</h3>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="card p-3 border-0 text-center shadow-sm rounded-4 bg-white h-100">
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">TOTAL CIVITAS</small>
+            <h3 class="fw-bold text-dark mb-0 mt-1" id="stat-users">-</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRAFIK STATISTIK & VISUALISASI DATA (CHART.JS) -->
+      <div class="row g-4 mb-4">
+        <!-- Grafik 1: Distribusi Kategori Barang (Doughnut) -->
+        <div class="col-lg-5">
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-pie-chart-fill text-primary me-1.5"></i> Distribusi Kategori Barang
+              </h6>
+              <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.7rem;">Category
+                Ratio</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+              <canvas id="chartCategory"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grafik 2: Persebaran Lokasi Kampus UMY (Bar Chart) -->
+        <div class="col-lg-7">
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-geo-alt-fill text-danger me-1.5"></i> Persebaran Titik Gedung Kampus UMY
+              </h6>
+              <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.7rem;">Campus Map</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+              <canvas id="chartLocation"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANTREAN VALIDASI & PINTASAN PENGELOLAAN CEPAT -->
+      <div class="row g-4">
+        <!-- KOLOM KIRI: ANTREAN VALIDASI KECOCOKAN AI -->
+        <div class="col-lg-8">
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold mb-0"><i class="bi bi-patch-check-fill text-primary me-1"></i> Antrean Validasi AI
+                (Pemeriksaan Fisik)</h5>
+              <a href="inbox.html" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                Lihat Semua Antrean &rarr;
+              </a>
+            </div>
+
+            <div class="d-flex flex-column gap-3" id="validation-list">
+              <div class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary"></div> Memuat antrean validasi...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOLOM KANAN: STATUS BREAKDOWN & PINTASAN MODUL -->
+        <div class="col-lg-4">
+          <!-- Status Pipeline Card -->
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white mb-3">
+            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-sliders text-info me-1"></i> Pipeline Status Laporan</h6>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>⏳ Menunggu Pencocokan</span>
+                <strong id="pipe-pending">0</strong>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div id="bar-pending" class="progress-bar bg-secondary" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>✨ AI Match Terdeteksi</span>
+                <strong id="pipe-matched" class="text-warning">0</strong>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div id="bar-matched" class="progress-bar bg-warning" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>✅ Terverifikasi Admin</span>
+                <strong id="pipe-verified" class="text-primary">0</strong>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div id="bar-verified" class="progress-bar bg-primary" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="d-flex justify-content-between small mb-1">
+                <span>📦 Selesai / Diambil Pemilik</span>
+                <strong id="pipe-resolved" class="text-success">0</strong>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div id="bar-resolved" class="progress-bar bg-success" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    let chartCatInstance = null;
+    let chartLocInstance = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      renderNavbar('admin-dashboard');
+      loadAdminDashboardData();
+    });
+
+    async function loadAdminDashboardData() {
+      try {
+        const res = await api.getAdminStats();
+        if (res?.success && res.data) {
+          const d = res.data;
+
+          // 1. KPI Counters
+          document.getElementById('stat-lost').textContent = d.totalLost ?? 0;
+          document.getElementById('stat-found').textContent = d.totalFound ?? 0;
+          document.getElementById('stat-rate').textContent = `${d.matchRate ?? 0}%`;
+          document.getElementById('stat-resolved-rate').textContent = `${d.resolvedRate ?? 0}%`;
+          document.getElementById('stat-pending').textContent = d.pendingValidationCount ?? 0;
+          document.getElementById('stat-users').textContent = d.totalUsers ?? 0;
+
+          // 2. Pipeline Progress
+          const total = d.totalLost || 1;
+          const sb = d.statusBreakdown || {};
+          document.getElementById('pipe-pending').textContent = sb.pending || 0;
+          document.getElementById('pipe-matched').textContent = sb.ai_matched || 0;
+          document.getElementById('pipe-verified').textContent = sb.verified || 0;
+          document.getElementById('pipe-resolved').textContent = sb.resolved || 0;
+
+          document.getElementById('bar-pending').style.width = `${Math.round(((sb.pending || 0) / total) * 100)}%`;
+          document.getElementById('bar-matched').style.width = `${Math.round(((sb.ai_matched || 0) / total) * 100)}%`;
+          document.getElementById('bar-verified').style.width = `${Math.round(((sb.verified || 0) / total) * 100)}%`;
+          document.getElementById('bar-resolved').style.width = `${Math.round(((sb.resolved || 0) / total) * 100)}%`;
+
+          // 3. Render Chart.js
+          renderCategoryChart(d.categoryStats || {});
+          renderLocationChart(d.locationStats || {});
+
+          // 4. Render Antrean Validasi
+          renderValidationQueue(d.recentPendingReports || []);
+        }
+      } catch (err) {
+        console.error('Error loadAdminDashboardData:', err);
+      }
+    }
+
+    function renderCategoryChart(categoryStats) {
+      const labels = Object.keys(categoryStats);
+      const data = Object.values(categoryStats);
+
+      if (labels.length === 0) {
+        labels.push('Belum Ada Data');
+        data.push(1);
+      }
+
+      const ctx = document.getElementById('chartCategory').getContext('2d');
+      if (chartCatInstance) chartCatInstance.destroy();
+
+      chartCatInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: [
+              '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#6366f1', '#14b8a6', '#64748b'
+            ],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                font: { family: 'Plus Jakarta Sans', size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderLocationChart(locationStats) {
+      const labels = Object.keys(locationStats);
+      const data = Object.values(locationStats);
+
+      const ctx = document.getElementById('chartLocation').getContext('2d');
+      if (chartLocInstance) chartLocInstance.destroy();
+
+      chartLocInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Jumlah Laporan Kejadian',
+            data,
+            backgroundColor: 'rgba(59, 130, 246, 0.85)',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, font: { family: 'Plus Jakarta Sans', size: 10 } }
+            },
+            x: {
+              ticks: { font: { family: 'Plus Jakarta Sans', size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderValidationQueue(pendingItems) {
+      const container = document.getElementById('validation-list');
+      if (pendingItems.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-success"><i class="bi bi-check2-circle fs-2 d-block mb-2"></i> Semua laporan saat ini telah divalidasi dengan baik.</div>';
+        return;
+      }
+
+      container.innerHTML = pendingItems.map(report => {
+        const cleanTele = (report.reporterTelegram || '').replace('@', '');
+        return `
+          <div class="card p-4 rounded-4 border bg-white shadow-sm mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="badge bg-primary font-monospace px-3 py-1.5 fs-7">${report.id}</span>
+              <span class="badge bg-success rounded-pill px-3 py-1.5"><i class="bi bi-stars"></i> ${report.matchScore}% Score Cocok</span>
+            </div>
+
+            <div class="row g-3 small mb-3">
+              <div class="col-md-6 border-end pe-md-3">
+                <strong class="text-muted d-block mb-1">Laporan Mahasiswa:</strong>
+                <div class="fw-bold text-dark fs-6 mb-1">${report.title}</div>
+                <div class="text-secondary fst-italic mb-2">"${report.features}"</div>
+                <div class="text-muted mt-2 pt-1">
+                  Pelapor: <strong>${report.reporterName}</strong> (${report.reporterNim})<br>
+                  <i class="bi bi-telegram text-info"></i> <a href="https://t.me/${cleanTele}" target="_blank" class="text-decoration-none fw-bold">${report.reporterTelegram}</a>
+                </div>
+              </div>
+              <div class="col-md-6 ps-md-3">
+                <strong class="text-muted d-block mb-1">Status Pencocokan:</strong>
+                <div class="fw-bold text-primary mb-1">${report.category}</div>
+                <div class="text-muted small mt-1">Alasan AI: ${report.matchReason || 'Kemiripan kata kunci dan lokasi.'}</div>
+                <div class="text-danger fw-bold mt-2"><i class="bi bi-geo-alt-fill"></i> Terakhir di: ${report.lastSeenLocation}</div>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center border-top pt-3 mt-1" style="gap: 12px;">
+              ${cleanTele ? `
+                <a href="https://t.me/${cleanTele}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1.5 shadow-xs">
+                  <i class="bi bi-telegram me-1"></i> Buka Chat Telegram
+                </a>
+              ` : '<div></div>'}
+              <div class="d-flex align-items-center" style="gap: 10px;">
+                <button onclick="handleValidate('${report.id}', '${report.matchedItemId || ''}', 'reject')" class="btn btn-sm btn-outline-danger rounded-pill px-3.5 py-1.5 shadow-xs">
+                  Tolak
+                </button>
+                <button onclick="handleValidate('${report.id}', '${report.matchedItemId || ''}', 'approve')" class="btn btn-sm btn-success rounded-pill px-3.5 py-1.5 fw-semibold shadow-xs">
+                  <i class="bi bi-check2-circle me-1"></i> Setujui & Kirim Bot
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleValidate(lostId, foundId, action) {
+      const isApprove = action === 'approve';
+      const promptRes = await showPromptDialog({
+        title: isApprove ? 'Setujui & Verifikasi Fisik' : 'Tolak Kecocokan',
+        text: isApprove ? 'Masukkan catatan instruksi pengambilan barang untuk mahasiswa:' : 'Masukkan alasan penolakan kecocokan:',
+        inputPlaceholder: isApprove ? 'Misal: Fisik cocok di Posko Gedung AR Fachruddin. Bawa KTM/Kartu Identitas saat klaim.' : 'Fisik barang tidak cocok.',
+        inputValue: isApprove ? 'Barang diverifikasi di Posko Keamanan UMY. Harap bawa KTM/Kartu Identitas asli saat pengambilan.' : 'Fisik tidak sesuai setelah pemeriksaan.'
+      });
+
+      if (!promptRes.isConfirmed) return;
+      const notes = promptRes.value;
+
+      try {
+        const res = await api.validateMatch({ lostReportId: lostId, foundItemId: foundId, action, notes });
+        if (res?.success) {
+          showTelegramLiveToast('@pelapor', `🔔 [VERIFIKASI ADMIN]\nLaporan ${lostId} telah divalidasi (${action.toUpperCase()}).\nCatatan: ${notes}`);
+          await showSuccessAlert('Validasi Tersimpan!', `Laporan ${lostId} berhasil ${isApprove ? 'disetujui dan notifikasi dikirim' : 'ditolak'}.`, 2000);
+          loadAdminDashboardData();
+        } else {
+          showErrorAlert('Gagal Validasi', res?.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+  </script>
+</body>
+
+</html>

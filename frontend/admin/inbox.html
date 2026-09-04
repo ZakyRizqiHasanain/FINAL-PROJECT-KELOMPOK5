@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inbox & Validasi Laporan - Admin Posko UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Khusus Admin Posko -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth(true);</script>
+</head>
+
+<body class="bg-light">
+
+  <!-- HEADER & SIDEBAR UMY KRS STYLE -->
+  <div id="navbar-container"></div>
+
+  <!-- KONTEN UTAMA INBOX -->
+  <main class="umy-main-content">
+    <div class="container-fluid">
+
+      <!-- HEADER -->
+      <div class="card bg-dark text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+          <div>
+            <span class="badge bg-purple rounded-pill px-3 py-1.5 mb-2">
+              <i class="bi bi-inbox-fill me-1"></i> Data Masuk Civitas UMY
+            </span>
+            <h3 class="fw-bold mb-1">Inbox Seluruh Laporan Kehilangan</h3>
+            <p class="text-white opacity-75 small mb-0">Daftar lengkap semua laporan kehilangan yang diajukan oleh
+              mahasiswa dan civitas kampus UMY.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL INBOX LAPORAN -->
+      <div class="card p-4 border-0 shadow-sm rounded-4 bg-white">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th>ID & Tanggal</th>
+                <th>Barang & Ciri Khusus</th>
+                <th>Kategori & Lokasi Gedung</th>
+                <th>Pelapor & Kontak</th>
+                <th>Status AI</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="inbox-rows">
+              <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                  <div class="spinner-border spinner-border-sm text-primary"></div> Memuat data laporan...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      renderNavbar('admin-inbox');
+
+      try {
+        const res = await api.getLostReports();
+        const tbody = document.getElementById('inbox-rows');
+        const reports = res?.data || [];
+
+        if (reports.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Belum ada laporan masuk dari civitas.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = reports.map(r => {
+          const cleanTele = (r.reporterTelegram || '').replace('@', '');
+          return `
+            <tr>
+              <td>
+                <span class="badge bg-light text-dark border font-monospace px-2.5 py-1.5">${r.id}</span>
+              </td>
+              <td>
+                <div class="fw-bold text-dark fs-6">${r.title}</div>
+                <div class="text-muted small text-truncate" style="max-width: 220px;" title="${r.features}">"${r.features}"</div>
+              </td>
+              <td>
+                <span class="badge bg-primary-subtle text-primary rounded-pill mb-1">${r.category}</span>
+                <div class="text-danger fw-semibold small mb-0.5"><i class="bi bi-geo-alt-fill me-1"></i>${r.lastSeenLocation}</div>
+                <div class="text-muted small"><i class="bi bi-calendar-event me-1"></i>${r.dateLost} ${r.approxTime ? '(' + r.approxTime + ')' : ''}</div>
+              </td>
+              <td>
+                <div class="fw-bold text-dark">${r.reporterName}</div>
+                ${cleanTele ? `
+                  <a href="https://t.me/${cleanTele}" target="_blank" class="badge bg-info bg-opacity-10 text-info border border-info-subtle text-decoration-none mt-1">
+                    <i class="bi bi-telegram me-1"></i>${r.reporterTelegram}
+                  </a>
+                ` : ''}
+              </td>
+              <td>
+                <span class="badge ${r.status === 'resolved' ? 'bg-dark' : r.status === 'verified' ? 'bg-success' : r.status === 'ai_matched' ? 'bg-primary' : 'bg-secondary'} rounded-pill px-2.5 py-1">
+                  ${r.status}
+                </span>
+                ${r.matchScore ? `<div class="small text-primary fw-bold mt-1">${r.matchScore}% Score</div>` : ''}
+              </td>
+              <td>
+                <a href="reports.html" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-xs">
+                  Kelola
+                </a>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loadInbox:', err);
+      }
+    });
+  </script>
+</body>
+
+</html>
