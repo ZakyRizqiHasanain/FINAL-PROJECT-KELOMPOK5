@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lapor Barang Temuan - Lost & Found UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Wajib Login -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth();</script>
+</head>
+<body class="bg-light">
+
+  <div id="navbar-container"></div>
+
+  <main class="umy-main-content">
+    <div class="container" style="max-width: 860px;">
+    <div class="card bg-success text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+      <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1.5 w-auto align-self-start mb-2">
+        <i class="bi bi-box-seam me-1"></i> Penemuan Barang Posko
+      </span>
+      <h3 class="fw-bold mb-1">Laporkan Barang Temuan di Kampus</h3>
+      <p class="text-white opacity-90 small mb-0">
+        Daftarkan barang yang ditemukan di lingkungan kampus UMY agar AI dapat mencocokkannya secara otomatis dengan laporan kehilangan mahasiswa.
+      </p>
+    </div>
+
+    <!-- FORMULIR PENEMUAN -->
+    <div class="card p-4 border-0 shadow-sm rounded-4">
+      <form id="form-report-found" onsubmit="handleSubmitFound(event)" novalidate>
+
+        <!-- BAGIAN 1: RINCIAN BARANG TEMUAN -->
+        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+          <i class="bi bi-tag-fill text-success me-1"></i> 1. Rincian Barang Temuan
+        </h6>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Nama Barang Temuan <span class="text-danger">*</span></label>
+          <input type="text" id="found-title" class="form-control" placeholder="Misal: Tumbler Corkcicle Putih / Kunci Motor Honda Vario" required>
+          <div class="invalid-feedback-custom" id="err-found-title" style="display: none;"></div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Kategori <span class="text-danger">*</span></label>
+            <select id="found-category" class="form-select" required>
+              <option value="Elektronik & Gadget">Elektronik & Gadget</option>
+              <option value="Dokumen & Kartu Identitas">Dokumen & Kartu Identitas</option>
+              <option value="Tas & Dompet">Tas & Dompet</option>
+              <option value="Kunci & Akses">Kunci & Akses</option>
+              <option value="Botol Minum & Tumbler">Botol Minum & Tumbler</option>
+              <option value="Pakaian & Aksesoris">Pakaian & Aksesoris</option>
+              <option value="Alat Tulis & Buku">Alat Tulis & Buku</option>
+              <option value="Lain-lain">Lain-lain</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Warna Dominan <span class="text-danger">*</span></label>
+            <input type="text" id="found-color" class="form-control" placeholder="Misal: Putih / Hitam / Silver" required>
+            <div class="invalid-feedback-custom" id="err-found-color" style="display: none;"></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Ciri-Ciri Fisik Khusus <span class="text-danger">*</span></label>
+          <textarea id="found-features" class="form-control" rows="2" placeholder="Misal: Ada stiker huruf M glitter, gantungan kunci merah..." required></textarea>
+          <div class="invalid-feedback-custom" id="err-found-features" style="display: none;"></div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-bold">Foto Dokumentasi Fisik Barang (Upload / Kamera)</label>
+          <div class="card p-3 border rounded-3 bg-light">
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 mb-2">
+              <input type="file" id="found-file-input" class="form-control form-control-sm" accept=".png, .jpg, .jpeg, image/png, image/jpeg" onchange="previewFoundImage(event)">
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 text-nowrap" onclick="triggerFoundCamera()">
+                <i class="bi bi-camera-fill me-1"></i> Ambil Foto Kamera
+              </button>
+            </div>
+            <small class="text-muted" style="font-size: 0.75rem;">Hanya menerima format <strong>PNG, JPG, atau JPEG</strong>. Pilih file dari galeri/folder atau ambil foto langsung dengan kamera.</small>
+            
+            <!-- Area Preview Gambar -->
+            <div id="found-preview-container" class="mt-2 text-center p-2 bg-white rounded-3 border" style="display: none;">
+              <img id="found-preview-img" src="" alt="Preview Foto" class="img-fluid rounded-3" style="max-height: 220px; object-fit: contain;">
+              <div class="mt-2">
+                <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-3" onclick="removeFoundImage()">
+                  <i class="bi bi-trash me-1"></i> Hapus / Ganti Foto
+                </button>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" id="found-image" value="">
+        </div>
+
+        <!-- BAGIAN 2: LOKASI TEMUAN & PENYIMPANAN POSKO -->
+        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+          <i class="bi bi-geo-alt-fill text-danger me-1"></i> 2. Lokasi Temuan & Titik Simpan Posko
+        </h6>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Lokasi Ditemukan (Gedung UMY) <span class="text-danger">*</span></label>
+          <select id="found-location" class="form-select" required>
+            <option value="Gedung AR. Fachruddin A (Perpustakaan & R. Sidang)">Gedung AR. Fachruddin A (Perpustakaan & R. Sidang)</option>
+            <option value="Gedung AR. Fachruddin B (Lobby & R. Kuliah)">Gedung AR. Fachruddin B (Lobby & R. Kuliah)</option>
+            <option value="Gedung Siti Walidah (F1/F2)">Gedung Siti Walidah (F1/F2)</option>
+            <option value="Gedung Ki Bagus Hadikusumo (E1-E6)">Gedung Ki Bagus Hadikusumo (E1-E6)</option>
+            <option value="Gedung Mas Mansyur (Kedokteran & Ilmu Kesehatan)">Gedung Mas Mansyur (Kedokteran & Ilmu Kesehatan)</option>
+            <option value="Gedung Ibrahim (FTI / FEB / Lab Komputer)">Gedung Ibrahim (FTI / FEB / Lab Komputer)</option>
+            <option value="Masjid KH Ahmad Dahlan (Lantai 1 / Tempat Wudhu)">Masjid KH Ahmad Dahlan (Lantai 1 / Tempat Wudhu)</option>
+            <option value="Masjid KH Ahmad Dahlan (Lantai 2)">Masjid KH Ahmad Dahlan (Lantai 2)</option>
+            <option value="Lapangan Bintang UMY">Lapangan Bintang UMY</option>
+            <option value="Student Center (SC) UMY">Student Center (SC) UMY</option>
+            <option value="Cafe 1912 / Kantin Barat UMY">Cafe 1912 / Kantin Barat UMY</option>
+            <option value="Sportorium UMY">Sportorium UMY</option>
+            <option value="Parkiran Gedung AR. Fachruddin">Parkiran Gedung AR. Fachruddin</option>
+            <option value="Pos Keamanan Gerbang Utama UMY">Pos Keamanan Gerbang Utama UMY</option>
+          </select>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Tanggal Ditemukan (Maksimal Hari Ini) <span class="text-danger">*</span></label>
+            <input type="date" id="found-date" class="form-control" required>
+            <div class="invalid-feedback-custom" id="err-found-date" style="display: none;"></div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Lokasi Simpan Fisik Posko <span class="text-danger">*</span></label>
+            <select id="found-storage" class="form-select" required>
+              <option value="Posko Keamanan Pusat (Gerbang Utama)">Posko Keamanan Pusat (Gerbang Utama)</option>
+              <option value="Pos Satpam Gedung AR. Fachruddin A">Pos Satpam Gedung AR. Fachruddin A</option>
+              <option value="Pos Satpam Gedung AR. Fachruddin B">Pos Satpam Gedung AR. Fachruddin B</option>
+              <option value="Pos Satpam Gedung Siti Walidah">Pos Satpam Gedung Siti Walidah</option>
+              <option value="Pos Satpam Gedung Ibrahim (FTI)">Pos Satpam Gedung Ibrahim (FTI)</option>
+              <option value="Pos Satpam Gedung Mas Mansyur">Pos Satpam Gedung Mas Mansyur</option>
+              <option value="Brankas Barang Berharga (Posko Pusat)">Brankas Barang Berharga (Posko Pusat)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-bold">Nama Penemu / Petugas Pencatat <span class="text-danger">*</span></label>
+          <input type="text" id="found-by" class="form-control" required>
+          <div class="invalid-feedback-custom" id="err-found-by" style="display: none;"></div>
+        </div>
+
+        <!-- TOMBOL SIMPAN -->
+        <div class="border-top pt-3 d-flex justify-content-between align-items-center">
+          <a href="index.html" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Batal</a>
+          <button type="submit" id="btn-submit-found" class="btn btn-success px-4 py-2 fw-semibold rounded-pill shadow-sm">
+            <i class="bi bi-check-circle-fill me-1"></i> Simpan Barang Temuan
+          </button>
+        </div>
+
+      </form>
+    </div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    let uploadedImageBase64 = '';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderNavbar('report-found');
+      renderFooter();
+
+      // Set default tanggal hari ini & pembatasan
+      const today = new Date().toISOString().split('T')[0];
+      const dateEl = document.getElementById('found-date');
+      dateEl.value = today;
+      dateEl.max = today;
+
+      // Set nama petugas pencatat jika login sebagai admin
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        document.getElementById('found-by').value = currentUser.name || 'Petugas Posko UMY';
+      }
+
+      // Live Form Validations
+      document.getElementById('found-title').addEventListener('input', function() {
+        validateField(this, this.value.trim().length >= 3, 'Nama barang minimal 3 karakter.', 'err-found-title');
+      });
+      document.getElementById('found-color').addEventListener('input', function() {
+        validateField(this, this.value.trim().length >= 2, 'Warna dominan wajib diisi.', 'err-found-color');
+      });
+      document.getElementById('found-features').addEventListener('input', function() {
+        validateField(this, this.value.trim().length >= 5, 'Ciri fisik minimal 5 karakter.', 'err-found-features');
+      });
+      document.getElementById('found-date').addEventListener('change', function() {
+        validateField(this, this.value && this.value <= today, 'Tanggal tidak boleh melebihi hari ini.', 'err-found-date');
+      });
+      document.getElementById('found-by').addEventListener('input', function() {
+        validateField(this, this.value.trim().length >= 2, 'Nama penemu/petugas wajib diisi.', 'err-found-by');
+      });
+    });
+
+    function triggerFoundCamera() {
+      const input = document.getElementById('found-file-input');
+      if (input) input.click();
+    }
+
+    function previewFoundImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const validMimes = ['image/png', 'image/jpeg', 'image/jpg'];
+      const isValidExt = /\.(png|jpe?g)$/i.test(file.name || '');
+      const isValidMime = validMimes.includes((file.type || '').toLowerCase());
+
+      if (!isValidMime && !isValidExt) {
+        showErrorAlert('Format File Tidak Sesuai', 'Foto barang wajib berformat PNG, JPG, atau JPEG.');
+        removeFoundImage();
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uploadedImageBase64 = e.target.result;
+        document.getElementById('found-image').value = uploadedImageBase64;
+        document.getElementById('found-preview-img').src = uploadedImageBase64;
+        document.getElementById('found-preview-container').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeFoundImage() {
+      uploadedImageBase64 = '';
+      document.getElementById('found-image').value = '';
+      document.getElementById('found-file-input').value = '';
+      document.getElementById('found-preview-container').style.display = 'none';
+      document.getElementById('found-preview-img').src = '';
+    }
+
+    async function handleSubmitFound(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-found');
+      const today = new Date().toISOString().split('T')[0];
+
+      const titleEl = document.getElementById('found-title');
+      const colorEl = document.getElementById('found-color');
+      const featEl = document.getElementById('found-features');
+      const dateEl = document.getElementById('found-date');
+      const byEl = document.getElementById('found-by');
+
+      const isTitleValid = validateField(titleEl, titleEl.value.trim().length >= 3, 'Nama barang wajib diisi.', 'err-found-title');
+      const isColorValid = validateField(colorEl, colorEl.value.trim().length >= 2, 'Warna wajib diisi.', 'err-found-color');
+      const isFeatValid = validateField(featEl, featEl.value.trim().length >= 5, 'Ciri khusus wajib diisi.', 'err-found-features');
+      const isDateValid = validateField(dateEl, dateEl.value && dateEl.value <= today, 'Tanggal tidak boleh melebihi hari ini.', 'err-found-date');
+      const isByValid = validateField(byEl, byEl.value.trim().length >= 2, 'Nama penemu/petugas wajib diisi.', 'err-found-by');
+
+      if (!isTitleValid || !isColorValid || !isFeatValid || !isDateValid || !isByValid) {
+        showErrorAlert('Formulir Belum Lengkap', 'Mohon lengkapi dan periksa kolom yang ditandai merah.');
+        return;
+      }
+
+      const payload = {
+        title: titleEl.value.trim(),
+        category: document.getElementById('found-category').value,
+        color: colorEl.value.trim(),
+        features: featEl.value.trim(),
+        locationFound: document.getElementById('found-location').value,
+        dateFound: dateEl.value,
+        timeFound: '10:00 WIB',
+        storageLocation: document.getElementById('found-storage').value,
+        foundBy: byEl.value.trim(),
+        imageUrl: uploadedImageBase64 || 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600'
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan ke Posko...';
+
+      try {
+        const res = await api.createFoundItem(payload);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Simpan Barang Temuan';
+
+        if (res?.success) {
+          await showSuccessAlert('Barang Temuan Berhasil Dicatat!', `Barang (${res.data?.foundItem?.id || 'FND'}) telah masuk inventaris posko keamanan.`, 2200);
+          window.location.href = 'matches.html';
+        } else {
+          showErrorAlert('Gagal Menyimpan', res?.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Simpan Barang Temuan';
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke server backend.');
+      }
+    }
+  </script>
+</body>
+</html>

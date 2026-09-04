@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hasil Pencocokan AI - Lost & Found UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Wajib Login -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth();</script>
+</head>
+
+<body class="bg-light">
+
+  <div id="navbar-container"></div>
+
+  <main class="umy-main-content">
+    <div class="container-fluid">
+      <div class="card bg-dark text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <span class="badge bg-primary rounded-pill px-3 py-1.5 mb-2">
+              <i class="bi bi-stars me-1"></i> AI Semantic Matching Engine
+            </span>
+            <h3 class="fw-bold mb-1">Hasil Pencocokan AI Cerdas</h3>
+            <p class="text-white opacity-75 small mb-0">Daftar laporan kehilangan mahasiswa yang otomatis dicocokkan
+              dengan inventaris barang temuan di posko UMY.</p>
+          </div>
+          <a href="report-lost.html" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-xs">
+            <i class="bi bi-plus-circle me-1"></i>Lapor Barang Baru
+          </a>
+        </div>
+      </div>
+
+      <!-- BANNER HASIL PENCARIAN CHATBOT AI -->
+      <div id="chatbot-match-banner-container"></div>
+
+      <!-- FILTER & PENCARIAN -->
+      <div class="card p-3 border-0 shadow-sm mb-4 rounded-4 bg-white">
+        <div class="row g-2">
+          <div class="col-md-6">
+            <input type="text" id="filter-search" class="form-control"
+              placeholder="🔍 Cari nama barang, ciri khusus, gedung UMY..." oninput="renderMatchesList()">
+          </div>
+          <div class="col-md-6">
+            <select id="filter-category" class="form-select" onchange="renderMatchesList()">
+              <option value="ALL">Semua Kategori</option>
+              <option value="Elektronik & Gadget">Elektronik & Gadget</option>
+              <option value="Dokumen & Kartu Identitas">Dokumen & Kartu Identitas</option>
+              <option value="Tas & Dompet">Tas & Dompet</option>
+              <option value="Kunci & Akses">Kunci & Akses</option>
+              <option value="Botol Minum & Tumbler">Botol Minum & Tumbler</option>
+              <option value="Pakaian & Aksesoris">Pakaian & Aksesoris</option>
+              <option value="Alat Tulis & Buku">Alat Tulis & Buku</option>
+              <option value="Lain-lain">Lain-lain</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAFTAR KARTU LAPORAN & KECOCOKAN AI -->
+      <div class="d-flex flex-column gap-3" id="matches-container">
+        <div class="text-center py-5 text-muted">
+          <div class="spinner-border spinner-border-sm text-primary"></div> Memuat hasil analisis pencocokan AI...
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    let allLostReports = [];
+    let allFoundItems = [];
+    let activeChatbotMatch = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      renderNavbar('matches');
+      renderFooter();
+
+      // Periksa apakah ada data aktif dari AI Chatbot
+      try {
+        const rawActive = sessionStorage.getItem('laf_active_match');
+        if (rawActive) {
+          activeChatbotMatch = JSON.parse(rawActive);
+          renderChatbotBanner(activeChatbotMatch);
+        }
+      } catch (e) {
+        console.warn('Gagal membaca active match:', e);
+      }
+
+      try {
+        const [lostRes, foundRes] = await Promise.all([
+          api.getLostReports(),
+          api.getFoundItems()
+        ]);
+        allLostReports = lostRes?.data || [];
+        allFoundItems = foundRes?.data || [];
+        renderMatchesList();
+      } catch (err) {
+        console.error('Gagal memuat data kecocokan:', err);
+      }
+    });
+
+    function dismissChatbotBanner() {
+      sessionStorage.removeItem('laf_active_match');
+      document.getElementById('chatbot-match-banner-container').innerHTML = '';
+    }
+
+    function prefillFromActiveMatch() {
+      if (activeChatbotMatch?.query) {
+        sessionStorage.setItem('laf_prefill_report', JSON.stringify(activeChatbotMatch.query));
+      }
+      window.location.href = 'report-lost.html';
+    }
+
+    function renderChatbotBanner(data) {
+      const banner = document.getElementById('chatbot-match-banner-container');
+      if (!banner || !data?.topMatch?.foundItem) return;
+
+      const q = data.query || {};
+      const f = data.topMatch.foundItem;
+      const score = data.topMatch.score || 70;
+
+      banner.innerHTML = `
+        <div class="card p-4 border-2 border-primary shadow-sm mb-4 rounded-4 bg-white">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary rounded-pill px-3 py-1.5"><i class="bi bi-stars text-warning me-1"></i> Rekomendasi Chatbot AI Terkini</span>
+              <span class="badge bg-success rounded-pill px-2.5 py-1">${score}% AI Match di Posko</span>
+            </div>
+            <button onclick="dismissChatbotBanner()" class="btn btn-sm btn-light border rounded-pill px-2.5 py-0.5 text-muted" title="Tutup Rekomendasi">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="row g-3">
+            <!-- Barang dari Chatbot -->
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-3 h-100 border">
+                <span class="text-muted d-block small fw-bold mb-1"><i class="bi bi-chat-text text-primary me-1"></i> BARANG DARI PERCAKAPAN ANDA:</span>
+                <h6 class="fw-bold text-dark mb-1">${q.title || 'Barang Hilang'}</h6>
+                <div class="small text-muted mb-2 fst-italic">"${q.features || '-'}"</div>
+                <div class="small text-secondary mb-1">🏷️ Kategori: <strong>${q.category || '-'}</strong> | 🎨 Warna: <strong>${q.color || '-'}</strong></div>
+                <div class="small text-danger fw-semibold">📍 Lokasi: ${q.lastSeenLocation || '-'}</div>
+              </div>
+            </div>
+            <!-- Barang Temuan di Posko -->
+            <div class="col-md-6">
+              <div class="p-3 bg-success bg-opacity-10 rounded-3 h-100 border border-success border-opacity-25">
+                <span class="text-success d-block small fw-bold mb-1"><i class="bi bi-patch-check-fill me-1"></i> BARANG TEMUAN DI POSKO SATPAM UMY:</span>
+                <h6 class="fw-bold text-dark mb-1">${f.title}</h6>
+                <div class="small text-muted mb-2 fst-italic">"${f.features || '-'}"</div>
+                <div class="small text-danger fw-semibold mb-3">
+                  <i class="bi bi-geo-alt-fill"></i> Simpan Fisik: <strong>${f.storageLocation || 'Posko Pusat'}</strong>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button onclick="prefillFromActiveMatch()" class="btn btn-sm btn-primary rounded-pill px-3.5 fw-semibold shadow-xs">
+                    <i class="bi bi-file-earmark-plus me-1"></i> Simpan Laporan / Klaim
+                  </button>
+                  <a href="chatbot.html" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-chat-dots me-1"></i> Kembali ke Chatbot
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Kalkulator kecocokan cerdas dinamis jika report belum memiliki matchedItemId
+    function calculateClientMatch(lostReport, foundItemsList) {
+      if (!foundItemsList || foundItemsList.length === 0) return null;
+      let best = null;
+      let bestScore = 0;
+
+      for (const f of foundItemsList) {
+        let score = 0;
+        const reasons = [];
+
+        if (lostReport.category && f.category && lostReport.category.toLowerCase() === f.category.toLowerCase()) {
+          score += 25;
+          reasons.push(`Kategori sama (${lostReport.category})`);
+        }
+
+        const titleTokensLost = (lostReport.title || '').toLowerCase().split(/\s+/).filter(t => t.length > 2);
+        const titleTokensFound = (f.title || '').toLowerCase().split(/\s+/).filter(t => t.length > 2);
+        const titleMatch = titleTokensLost.some(t => titleTokensFound.some(tf => tf.includes(t) || t.includes(tf)));
+        if (titleMatch) {
+          score += 30;
+          reasons.push('Nama atau merek barang cocok');
+        }
+
+        if (lostReport.color && f.color && (f.color.toLowerCase().includes(lostReport.color.toLowerCase()) || lostReport.color.toLowerCase().includes(f.color.toLowerCase()))) {
+          score += 20;
+          reasons.push(`Warna cocok (${lostReport.color})`);
+        }
+
+        if (lostReport.lastSeenLocation && f.locationFound && (f.locationFound.toLowerCase().includes(lostReport.lastSeenLocation.toLowerCase()) || lostReport.lastSeenLocation.toLowerCase().includes(f.locationFound.toLowerCase()))) {
+          score += 20;
+          reasons.push('Lokasi penemuan relevan');
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          best = { foundItem: f, score, reasons, explanation: reasons.join(', ') };
+        }
+      }
+
+      return bestScore >= 35 ? best : null;
+    }
+
+    // Render daftar kartu laporan dan hasil perbandingan AI
+    function renderMatchesList() {
+      const search = (document.getElementById('filter-search')?.value || '').toLowerCase();
+      const cat = document.getElementById('filter-category')?.value || 'ALL';
+      const container = document.getElementById('matches-container');
+
+      const filtered = allLostReports.filter(r => {
+        const matchSearch = (r.title || '').toLowerCase().includes(search) ||
+          (r.features || '').toLowerCase().includes(search) ||
+          (r.lastSeenLocation || '').toLowerCase().includes(search);
+        const matchCat = cat === 'ALL' || r.category === cat;
+        return matchSearch && matchCat;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="card p-5 text-center text-muted border-0 shadow-sm rounded-4">Tidak ada laporan yang sesuai dengan filter pencarian.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(report => {
+        let found = allFoundItems.find(f => f.id === report.matchedItemId);
+        let score = report.matchScore || 0;
+
+        // Jika belum ada relasi tetap, gunakan pencocokan dinamis real-time
+        if (!found) {
+          const comp = calculateClientMatch(report, allFoundItems);
+          if (comp) {
+            found = comp.foundItem;
+            score = comp.score;
+          }
+        }
+
+        const cleanTele = (report.reporterTelegram || '').replace('@', '');
+
+        return `
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white">
+            <!-- Header Kartu -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-light text-dark font-monospace border px-2.5 py-1">${report.id}</span>
+              ${score > 0 ? `<span class="badge ${score >= 70 ? 'bg-success' : 'bg-warning text-dark'} rounded-pill px-3 py-1"><i class="bi bi-stars"></i> ${score}% AI Match</span>` : ''}
+            </div>
+
+            <h5 class="fw-bold mb-1 text-dark">${report.title}</h5>
+            <p class="text-muted small fst-italic mb-3">"${report.features}"</p>
+
+            <div class="row g-2 bg-light p-3 rounded-3 small text-secondary mb-3">
+              <div class="col-sm-4"><i class="bi bi-tag-fill text-primary me-1"></i> ${report.category} (${report.color})</div>
+              <div class="col-sm-4"><i class="bi bi-geo-alt-fill text-danger me-1"></i> ${report.lastSeenLocation}</div>
+              <div class="col-sm-4">
+                <i class="bi bi-person-fill text-dark me-1"></i> ${report.reporterName} 
+                ${cleanTele ? `<a href="https://t.me/${cleanTele}" target="_blank" class="badge bg-info bg-opacity-10 text-info text-decoration-none ms-1"><i class="bi bi-telegram"></i> ${report.reporterTelegram}</a>` : ''}
+              </div>
+            </div>
+
+            <!-- Bagian Hasil Kecocokan Barang Temuan di Posko -->
+            ${found ? `
+              <div class="p-3 bg-primary bg-opacity-10 border border-primary-subtle rounded-3">
+                <div class="fw-bold text-primary small mb-1"><i class="bi bi-stars"></i> Barang Temuan Serupa di Posko Keamanan:</div>
+                <div class="fw-bold text-dark fs-6">${found.title}</div>
+                <div class="text-muted small mb-2 fst-italic">"${found.features}"</div>
+                <div class="d-flex justify-content-between align-items-center small flex-wrap gap-2">
+                  <span class="text-danger fw-semibold"><i class="bi bi-shield-shaded"></i> Simpan Fisik: <strong>${found.storageLocation}</strong></span>
+                  ${isAdmin() ? `
+                    <button onclick="handleValidateMatch('${report.id}', '${found.id}')" class="btn btn-sm btn-success rounded-pill px-3.5 fw-semibold shadow-xs">
+                      <i class="bi bi-check-circle-fill me-1"></i> Validasi Cocok
+                    </button>
+                  ` : `
+                    <span class="badge bg-success-subtle text-success p-2 rounded-pill"><i class="bi bi-info-circle me-1"></i> Bawa KTM/Kartu Identitas ke Posko untuk Klaim</span>
+                  `}
+                </div>
+              </div>
+            ` : `
+              <div class="text-muted small text-center py-2.5 bg-light rounded-3">
+                <i class="bi bi-hourglass-split me-1 text-warning"></i> Belum ada barang serupa di inventaris posko saat ini. AI akan terus memantau.
+              </div>
+            `}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleValidateMatch(lostId, foundId) {
+      const promptRes = await showPromptDialog({
+        title: 'Verifikasi Kecocokan Fisik',
+        text: 'Masukkan catatan instruksi klaim untuk pelapor:',
+        inputPlaceholder: 'Misal: Fisik cocok di Posko. Bawa KTM/Kartu Identitas asli.',
+        inputValue: 'Fisik terverifikasi di posko keamanan UMY. Harap bawa KTM/Kartu Identitas asli saat pengambilan.'
+      });
+
+      if (!promptRes.isConfirmed) return;
+      const notes = promptRes.value;
+
+      try {
+        const res = await api.validateMatch({ lostReportId: lostId, foundItemId: foundId, action: 'approve', notes });
+        if (res?.success) {
+          showTelegramLiveToast('@pelapor', `🔔 [VERIFIKASI ADMIN]\nLaporan ${lostId} telah disetujui.\nCatatan: ${notes}`);
+          await showSuccessAlert('Validasi Berhasil Disimpan!', 'Status kecocokan telah diperbarui.', 2000);
+          window.location.reload();
+        } else {
+          showErrorAlert('Gagal Memperbarui', res?.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+  </script>
+</body>
+
+</html>
