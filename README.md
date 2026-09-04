@@ -15,7 +15,6 @@
 4. 💬 **Chatbot AI Interaktif (Opsi B):** Pelaporan santai menggunakan bahasa alami yang ditenagai oleh **Google Gemini AI**.
 5. 🤖 **Push Alert Telegram Bot:** Notifikasi instan ke akun Telegram saat barang terdeteksi cocok $\ge 50\%$.
 6. 📊 **Dashboard Analitik & Admin Posko:** Visualisasi grafik **Chart.js**, manajemen inventaris fisik, kotak masuk validasi, dan siaran pesan massal (*broadcast*).
-7. 🔄 **Live 4-Phase Tracking:** Pelacakan status transparan (*Dilaporkan* $\rightarrow$ *AI Matched* $\rightarrow$ *Diverifikasi* $\rightarrow$ *Selesai*).
 
 ---
 
