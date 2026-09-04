@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengelolaan Pengguna Civitas - Admin Posko UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Khusus Admin Posko -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth(true);</script>
+</head>
+
+<body class="bg-light">
+
+  <!-- HEADER & SIDEBAR UMY KRS STYLE -->
+  <div id="navbar-container"></div>
+
+  <!-- KONTEN UTAMA PENGGUNA -->
+  <main class="umy-main-content">
+    <div class="container-fluid">
+
+      <!-- HEADER ACTION BAR -->
+      <div class="card bg-dark text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <span class="badge bg-purple rounded-pill px-3 py-1.5 mb-2">
+              <i class="bi bi-people me-1"></i> Modul Pengelolaan Civitas
+            </span>
+            <h3 class="fw-bold mb-1">Pengelolaan Akun Pengguna Kampus</h3>
+            <p class="text-white opacity-75 small mb-0">Tambah pengguna baru, perbarui data kontak civitas, ubah hak
+              akses (role), atau hapus akun pengguna.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button onclick="openCreateUserModal()"
+              class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-xs">
+              <i class="bi bi-person-plus-fill me-1"></i>Tambah Pengguna Baru
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER & SEARCH BAR -->
+      <div class="card p-3 border-0 shadow-sm rounded-4 bg-white mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-7">
+            <input type="text" id="user-search" class="form-control"
+              placeholder="🔍 Cari nama, NIM, email, username Telegram..." oninput="filterAndRenderUsers()">
+          </div>
+          <div class="col-md-5">
+            <select id="user-role-filter" class="form-select" onchange="filterAndRenderUsers()">
+              <option value="ALL">Semua Peran (Roles)</option>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL DAFTAR PENGGUNA -->
+      <div class="card p-4 border-0 shadow-sm rounded-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-person-lines-fill text-primary me-1"></i> Daftar Akun Terdaftar (<span
+              id="user-count">0</span>)
+          </h6>
+          <button onclick="loadUsersData()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th>Nama Civitas</th>
+                <th>NIM / NIP</th>
+                <th>Email Akun</th>
+                <th>Kontak WhatsApp</th>
+                <th>Username Telegram</th>
+                <th>Peran (Role)</th>
+                <th class="text-end">Aksi CRUD</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-rows">
+              <tr>
+                <td colspan="7" class="text-center py-5 text-muted">
+                  <div class="spinner-border spinner-border-sm text-primary"></div> Memuat data pengguna...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    let allUsers = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      renderNavbar('admin-users');
+      loadUsersData();
+    });
+
+    async function loadUsersData() {
+      try {
+        const res = await api.getAdminUsers();
+        allUsers = res?.data || [];
+        filterAndRenderUsers();
+      } catch (err) {
+        console.error('Error loadUsersData:', err);
+      }
+    }
+
+    function filterAndRenderUsers() {
+      const search = (document.getElementById('user-search')?.value || '').toLowerCase();
+      const roleFilter = document.getElementById('user-role-filter')?.value || 'ALL';
+      const tbody = document.getElementById('user-table-rows');
+
+      const filtered = allUsers.filter(u => {
+        const matchSearch = (u.name || '').toLowerCase().includes(search) ||
+          (u.nim || '').toLowerCase().includes(search) ||
+          (u.email || '').toLowerCase().includes(search) ||
+          (u.phone || '').toLowerCase().includes(search) ||
+          (u.telegramUsername || '').toLowerCase().includes(search);
+        const matchRole = roleFilter === 'ALL' || (u.role || 'user') === roleFilter;
+        return matchSearch && matchRole;
+      });
+
+      document.getElementById('user-count').textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">Tidak ada pengguna yang cocok dengan kriteria pencarian.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const cleanTele = (u.telegramUsername || '').replace('@', '');
+        const isAdminUser = u.role === 'admin';
+
+        return `
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-5 ${isAdminUser ? 'text-warning' : 'text-primary'}"></i>
+                <div>
+                  <div class="fw-bold text-dark">${u.name}</div>
+                  <small class="text-muted" style="font-size: 0.75rem;">ID: ${u.id}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border font-monospace px-2.5 py-1">${u.nim}</span>
+            </td>
+            <td>
+              <div class="text-secondary">${u.email}</div>
+            </td>
+            <td>
+              <div class="text-dark"><i class="bi bi-whatsapp text-success me-1"></i>${u.phone || '-'}</div>
+            </td>
+            <td>
+              ${cleanTele ? `
+                <a href="https://t.me/${cleanTele}" target="_blank" class="badge bg-info bg-opacity-10 text-info border border-info-subtle text-decoration-none">
+                  <i class="bi bi-telegram me-1"></i>${u.telegramUsername}
+                </a>
+              ` : '<span class="text-muted">-</span>'}
+            </td>
+            <td>
+              <span class="badge ${isAdminUser ? 'bg-dark text-white border border-dark' : 'bg-primary-subtle text-primary border border-primary-subtle'} px-3 py-1.5 rounded-pill fw-semibold">
+                ${isAdminUser ? 'Admin' : 'User'}
+              </span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <button onclick="handleEditFullUser('${u.id}')" class="btn btn-outline-primary rounded-pill px-2.5 me-1" title="Edit Data Pengguna">
+                  <i class="bi bi-pencil-square me-1"></i> Edit
+                </button>
+                <button onclick="handleDeleteUser('${u.id}', '${u.name}')" class="btn btn-outline-danger rounded-pill px-2" title="Hapus Pengguna">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // CREATE: Tambah Pengguna Baru oleh Admin
+    async function openCreateUserModal() {
+      const { value: formValues } = await Swal.fire({
+        title: 'Tambah Pengguna Baru',
+        width: '580px',
+        html: `
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Nama Lengkap <span class="text-danger">*</span></label>
+            <input id="swal-user-name" class="form-control form-control-sm" placeholder="Nama mahasiswa / petugas (min 3 huruf)">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">NIM / NIP <span class="text-danger">*</span></label>
+              <input id="swal-user-nim" class="form-control form-control-sm" placeholder="Min 8 digit angka" maxlength="18">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Peran (Role) <span class="text-danger">*</span></label>
+              <select id="swal-user-role" class="form-select form-select-sm">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Email Akun <span class="text-danger">*</span></label>
+            <input id="swal-user-email" type="email" class="form-control form-control-sm" placeholder="nama@student.umy.ac.id">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">No. WhatsApp <span class="text-danger">*</span></label>
+              <input id="swal-user-phone" class="form-control form-control-sm" placeholder="08xxxxxxxxxx" maxlength="13">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Username Telegram <span class="text-danger">*</span></label>
+              <input id="swal-user-tele" class="form-control form-control-sm" placeholder="@username" maxlength="35">
+            </div>
+          </div>
+          <div class="text-start mb-1">
+            <label class="form-label small fw-bold">Kata Sandi Awal (Kombinasi Huruf & Angka) <span class="text-danger">*</span></label>
+            <input id="swal-user-pass" type="text" class="form-control form-control-sm" value="umy2026" placeholder="Min 8 karakter kombinasi">
+            <small class="text-muted" style="font-size: 0.72rem;">Wajib minimal 8 karakter, kombinasi huruf dan angka (contoh: <code>sandi123</code> atau <code>umy2026</code>).</small>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Daftarkan Pengguna',
+        cancelButtonText: 'Batal',
+        didOpen: () => {
+          const nimEl = document.getElementById('swal-user-nim');
+          const phoneEl = document.getElementById('swal-user-phone');
+          const teleEl = document.getElementById('swal-user-tele');
+
+          if (nimEl) {
+            nimEl.addEventListener('input', function () {
+              this.value = this.value.replace(/[^0-9]/g, '');
+            });
+          }
+          if (phoneEl) {
+            phoneEl.addEventListener('input', function () {
+              this.value = this.value.replace(/[^0-9]/g, '');
+            });
+          }
+          if (teleEl) {
+            teleEl.addEventListener('input', function () {
+              if (this.value && !this.value.startsWith('@')) {
+                this.value = '@' + this.value.replace(/@/g, '');
+              }
+            });
+          }
+        },
+        preConfirm: () => {
+          const name = document.getElementById('swal-user-name').value.trim();
+          const nim = document.getElementById('swal-user-nim').value.trim();
+          const email = document.getElementById('swal-user-email').value.trim().toLowerCase();
+          const phone = document.getElementById('swal-user-phone').value.trim();
+          let tele = document.getElementById('swal-user-tele').value.trim();
+          const pass = document.getElementById('swal-user-pass').value;
+          const role = document.getElementById('swal-user-role').value;
+
+          if (!name || name.length < 3) {
+            Swal.showValidationMessage('Nama lengkap wajib diisi minimal 3 karakter.');
+            return false;
+          }
+
+          if (!nim || !/^\d{8,}$/.test(nim)) {
+            Swal.showValidationMessage('NIM / NIP harus berupa angka minimal 8 digit.');
+            return false;
+          }
+
+          const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          if (!email || !emailRegex.test(email)) {
+            Swal.showValidationMessage('Format email harus valid dengan domain lengkap (contoh .com atau .ac.id).');
+            return false;
+          }
+
+          if (!phone || !/^\d{10,13}$/.test(phone)) {
+            Swal.showValidationMessage('No. WhatsApp harus berupa 10-13 digit angka.');
+            return false;
+          }
+
+          if (!tele) {
+            Swal.showValidationMessage('Username Telegram wajib diisi untuk notifikasi bot.');
+            return false;
+          }
+          if (!tele.startsWith('@')) tele = '@' + tele;
+          if (tele.length < 4) {
+            Swal.showValidationMessage('Username Telegram wajib minimal 4 karakter diawali @ (misal: @username).');
+            return false;
+          }
+
+          const hasLetter = /[a-zA-Z]/.test(pass);
+          const hasNumber = /[0-9]/.test(pass);
+          if (!pass || pass.length < 8 || !hasLetter || !hasNumber) {
+            Swal.showValidationMessage('Kata sandi minimal 8 karakter dan wajib kombinasi huruf serta angka (contoh: sandi123).');
+            return false;
+          }
+
+          return {
+            name,
+            email,
+            nim,
+            role,
+            phone,
+            telegramUsername: tele,
+            password: pass
+          };
+        }
+      });
+
+      if (!formValues) return;
+
+      try {
+        const res = await api.createAdminUser(formValues);
+        if (res?.success) {
+          await showSuccessAlert('Pengguna Terdaftar!', `Akun ${res.data.name} berhasil dibuat.`, 1800);
+          loadUsersData();
+        } else {
+          showErrorAlert('Gagal Mendaftarkan', res?.message || 'Terjadi kesalahan.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+
+    // UPDATE: Edit Data Pengguna Lengkap
+    async function handleEditFullUser(id) {
+      const user = allUsers.find(u => u.id === id);
+      if (!user) return;
+
+      const { value: formValues } = await Swal.fire({
+        title: `Edit Pengguna (${user.name})`,
+        width: '580px',
+        html: `
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Nama Lengkap <span class="text-danger">*</span></label>
+            <input id="swal-edit-u-name" class="form-control form-control-sm" value="${user.name}">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">NIM / NIP <span class="text-danger">*</span></label>
+              <input id="swal-edit-u-nim" class="form-control form-control-sm" value="${user.nim}" maxlength="18">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Peran (Role) <span class="text-danger">*</span></label>
+              <select id="swal-edit-u-role" class="form-select form-select-sm">
+                <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Email Akun <span class="text-danger">*</span></label>
+            <input id="swal-edit-u-email" type="email" class="form-control form-control-sm" value="${user.email}">
+          </div>
+          <div class="row g-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">No. WhatsApp <span class="text-danger">*</span></label>
+              <input id="swal-edit-u-phone" class="form-control form-control-sm" value="${user.phone || ''}" maxlength="13">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Username Telegram <span class="text-danger">*</span></label>
+              <input id="swal-edit-u-tele" class="form-control form-control-sm" value="${user.telegramUsername || ''}" maxlength="35">
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan Perubahan',
+        cancelButtonText: 'Batal',
+        didOpen: () => {
+          const nimEl = document.getElementById('swal-edit-u-nim');
+          const phoneEl = document.getElementById('swal-edit-u-phone');
+          const teleEl = document.getElementById('swal-edit-u-tele');
+
+          if (nimEl) {
+            nimEl.addEventListener('input', function () {
+              this.value = this.value.replace(/[^0-9]/g, '');
+            });
+          }
+          if (phoneEl) {
+            phoneEl.addEventListener('input', function () {
+              this.value = this.value.replace(/[^0-9]/g, '');
+            });
+          }
+          if (teleEl) {
+            teleEl.addEventListener('input', function () {
+              if (this.value && !this.value.startsWith('@')) {
+                this.value = '@' + this.value.replace(/@/g, '');
+              }
+            });
+          }
+        },
+        preConfirm: () => {
+          const name = document.getElementById('swal-edit-u-name').value.trim();
+          const nim = document.getElementById('swal-edit-u-nim').value.trim();
+          const email = document.getElementById('swal-edit-u-email').value.trim().toLowerCase();
+          const phone = document.getElementById('swal-edit-u-phone').value.trim();
+          let tele = document.getElementById('swal-edit-u-tele').value.trim();
+          const role = document.getElementById('swal-edit-u-role').value;
+
+          if (!name || name.length < 3) {
+            Swal.showValidationMessage('Nama lengkap wajib diisi minimal 3 karakter.');
+            return false;
+          }
+
+          if (!nim || !/^\d{8,}$/.test(nim)) {
+            Swal.showValidationMessage('NIM / NIP harus berupa angka minimal 8 digit.');
+            return false;
+          }
+
+          const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+          if (!email || !emailRegex.test(email)) {
+            Swal.showValidationMessage('Format email harus valid dengan domain lengkap (contoh .com atau .ac.id).');
+            return false;
+          }
+
+          if (!phone || !/^\d{10,13}$/.test(phone)) {
+            Swal.showValidationMessage('No. WhatsApp harus berupa 10-13 digit angka.');
+            return false;
+          }
+
+          if (!tele) {
+            Swal.showValidationMessage('Username Telegram wajib diisi untuk notifikasi bot.');
+            return false;
+          }
+          if (!tele.startsWith('@')) tele = '@' + tele;
+          if (tele.length < 4) {
+            Swal.showValidationMessage('Username Telegram wajib minimal 4 karakter diawali @.');
+            return false;
+          }
+
+          return {
+            name,
+            nim,
+            email,
+            role,
+            phone,
+            telegramUsername: tele
+          };
+        }
+      });
+
+      if (!formValues) return;
+
+      try {
+        const res = await api.updateAdminUser(id, formValues);
+        if (res?.success) {
+          await showSuccessAlert('Data Diperbarui!', `Informasi akun ${formValues.name} telah disimpan.`, 1800);
+          loadUsersData();
+        } else {
+          showErrorAlert('Gagal Memperbarui', res?.message || 'Terjadi kesalahan.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+
+    // DELETE: Hapus Pengguna
+    async function handleDeleteUser(id, name) {
+      const confirm = await showConfirmDialog({
+        title: 'Hapus Akun Pengguna?',
+        text: `Apakah Anda yakin ingin menghapus akun ${name}? Seluruh data riwayat akun ini akan dihapus.`,
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      try {
+        const res = await api.deleteUser(id);
+        if (res?.success) {
+          await showSuccessAlert('Pengguna Dihapus!', `Akun ${name} telah dihapus dari sistem.`, 1800);
+          loadUsersData();
+        } else {
+          showErrorAlert('Gagal Menghapus', res?.message || 'Gagal menghapus pengguna.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke server.');
+      }
+    }
+  </script>
+</body>
+
+</html>

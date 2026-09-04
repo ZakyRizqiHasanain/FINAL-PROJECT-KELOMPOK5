@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengelolaan Laporan Kehilangan - Admin Posko UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Khusus Admin Posko -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth(true);</script>
+</head>
+
+<body class="bg-light">
+
+  <!-- HEADER & SIDEBAR UMY KRS STYLE -->
+  <div id="navbar-container"></div>
+
+  <!-- KONTEN UTAMA LAPORAN -->
+  <main class="umy-main-content">
+    <div class="container-fluid">
+
+      <!-- HEADER ACTION BAR -->
+      <div class="card bg-dark text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <span class="badge bg-purple rounded-pill px-3 py-1.5 mb-2">
+              <i class="bi bi-file-earmark-text me-1"></i> Modul Pengelolaan Laporan
+            </span>
+            <h3 class="fw-bold mb-1">Pengelolaan Laporan Kehilangan Civitas</h3>
+            <p class="text-white opacity-75 small mb-0">Tambah laporan baru secara manual, ubah status verifikasi,
+              perbarui data laporan, atau hapus data laporan kehilangan.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button onclick="openCreateReportModal()"
+              class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-xs">
+              <i class="bi bi-plus-circle me-1"></i>Tambah Laporan Baru
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER & PENCARIAN -->
+      <div class="card p-3 border-0 shadow-sm rounded-4 bg-white mb-4">
+        <div class="row g-2">
+          <div class="col-md-5">
+            <input type="text" id="report-search" class="form-control"
+              placeholder="🔍 Cari ID, nama barang, ciri, nama pelapor..." oninput="filterAndRenderReports()">
+          </div>
+          <div class="col-md-4">
+            <select id="report-status-filter" class="form-select" onchange="filterAndRenderReports()">
+              <option value="ALL">Semua Status</option>
+              <option value="pending">⏳ Menunggu Pencocokan (Pending)</option>
+              <option value="ai_matched">✨ Terdeteksi AI Match</option>
+              <option value="verified">✅ Terverifikasi Admin Posko</option>
+              <option value="resolved">📦 Selesai / Telah Diambil</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select id="report-category-filter" class="form-select" onchange="filterAndRenderReports()">
+              <option value="ALL">Semua Kategori</option>
+              <option value="Elektronik & Gadget">Elektronik & Gadget</option>
+              <option value="Dokumen & Kartu Identitas">Dokumen & Kartu Identitas</option>
+              <option value="Tas & Dompet">Tas & Dompet</option>
+              <option value="Kunci & Akses">Kunci & Akses</option>
+              <option value="Botol Minum & Tumbler">Botol Minum & Tumbler</option>
+              <option value="Pakaian & Aksesoris">Pakaian & Aksesoris</option>
+              <option value="Alat Tulis & Buku">Alat Tulis & Buku</option>
+              <option value="Lain-lain">Lain-lain</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL DAFTAR LAPORAN -->
+      <div class="card p-4 border-0 shadow-sm rounded-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-table text-primary me-1"></i> Data Laporan Masuk (<span id="report-count">0</span>)
+          </h6>
+          <button onclick="loadReportsData()" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+            title="Segarkan data">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th>ID Laporan</th>
+                <th>Rincian Barang</th>
+                <th>Gedung Lokasi & Waktu</th>
+                <th>Data Pelapor</th>
+                <th>Status Penanganan</th>
+              </tr>
+            </thead>
+            <tbody id="report-table-rows">
+              <tr>
+                <td colspan="5" class="text-center py-5 text-muted">
+                  <div class="spinner-border spinner-border-sm text-primary"></div> Memuat data laporan...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    let allReports = [];
+    let allFoundItems = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      renderNavbar('admin-reports');
+      loadReportsData();
+    });
+
+    async function loadReportsData() {
+      try {
+        const [lostRes, foundRes] = await Promise.all([
+          api.getLostReports(),
+          api.getFoundItems()
+        ]);
+        allReports = lostRes?.data || [];
+        allFoundItems = foundRes?.data || [];
+        filterAndRenderReports();
+      } catch (err) {
+        console.error('Error loadReportsData:', err);
+      }
+    }
+
+    function filterAndRenderReports() {
+      const search = (document.getElementById('report-search')?.value || '').toLowerCase();
+      const status = document.getElementById('report-status-filter')?.value || 'ALL';
+      const cat = document.getElementById('report-category-filter')?.value || 'ALL';
+      const tbody = document.getElementById('report-table-rows');
+
+      const filtered = allReports.filter(r => {
+        const matchSearch = (r.id || '').toLowerCase().includes(search) ||
+          (r.title || '').toLowerCase().includes(search) ||
+          (r.features || '').toLowerCase().includes(search) ||
+          (r.reporterName || '').toLowerCase().includes(search) ||
+          (r.reporterTelegram || '').toLowerCase().includes(search);
+        const matchStatus = status === 'ALL' || r.status === status;
+        const matchCat = cat === 'ALL' || r.category === cat;
+        return matchSearch && matchStatus && matchCat;
+      });
+
+      document.getElementById('report-count').textContent = filtered.length;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Tidak ada laporan yang sesuai dengan kriteria filter.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
+        const cleanTele = (r.reporterTelegram || '').replace('@', '');
+        return `
+          <tr style="cursor: pointer;" onclick="showReportDetails('${r.id}')" title="Klik untuk melihat rincian & mengelola laporan ${r.id}">
+            <td>
+              <span class="badge bg-light text-dark border font-monospace px-2.5 py-1.5">${r.id}</span>
+            </td>
+            <td>
+              <div class="fw-bold text-dark fs-6">${r.title}</div>
+              <span class="badge bg-primary-subtle text-primary rounded-pill mb-1" style="font-size: 0.7rem;">${r.category}</span>
+              <div class="text-muted small text-truncate" style="max-width: 240px;" title="${r.features}">"${r.features}"</div>
+            </td>
+            <td>
+              <div class="text-danger fw-semibold small mb-1"><i class="bi bi-geo-alt-fill me-1"></i>${r.lastSeenLocation}</div>
+              <div class="text-muted small"><i class="bi bi-calendar-event me-1"></i>${r.dateLost} ${r.approxTime ? '(' + r.approxTime + ')' : ''}</div>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">${r.reporterName}</div>
+              ${cleanTele ? `
+                <a href="https://t.me/${cleanTele}" target="_blank" onclick="event.stopPropagation()" class="badge bg-info bg-opacity-10 text-info text-decoration-none mt-1">
+                  <i class="bi bi-telegram me-1"></i>${r.reporterTelegram}
+                </a>
+              ` : ''}
+            </td>
+            <td>
+              <span class="badge ${getStatusBadgeClass(r.status)} px-2.5 py-1 rounded-pill">
+                ${getStatusLabel(r.status)}
+              </span>
+              ${r.matchScore ? `<div class="small text-primary fw-bold mt-1">${r.matchScore}% Score AI</div>` : ''}
+              ${r.adminValidationNotes ? `<div class="text-muted fst-italic mt-1" style="font-size: 0.75rem;">"${r.adminValidationNotes}"</div>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getStatusBadgeClass(status) {
+      if (status === 'resolved') return 'bg-dark text-white';
+      if (status === 'verified') return 'bg-success text-white';
+      if (status === 'ai_matched') return 'bg-warning text-dark';
+      return 'bg-secondary text-white';
+    }
+
+    function getStatusLabel(status) {
+      if (status === 'resolved') return '📦 Selesai / Diambil';
+      if (status === 'verified') return '✅ Terverifikasi Admin';
+      if (status === 'ai_matched') return '✨ AI Matched';
+      return '⏳ Menunggu';
+    }
+
+    // DETAIL POPUP: Menampilkan Informasi Lengkap Laporan Saat Baris Diklik & Aksi CRUD
+    async function showReportDetails(id) {
+      const report = allReports.find(r => r.id === id);
+      if (!report) return;
+
+      const cleanTele = (report.reporterTelegram || '').replace('@', '');
+      const matchedFound = allFoundItems.find(f => f.id === report.matchedItemId);
+
+      await Swal.fire({
+        width: '680px',
+        showCloseButton: false,
+        showConfirmButton: true,
+        confirmButtonText: '<i class="bi bi-pencil-square me-1"></i> Edit Laporan',
+        confirmButtonColor: '#0b3260',
+        showDenyButton: true,
+        denyButtonText: '<i class="bi bi-trash me-1"></i> Hapus Laporan',
+        denyButtonColor: '#dc3545',
+        showCancelButton: true,
+        cancelButtonText: 'Tutup',
+        cancelButtonColor: '#64748b',
+        customClass: {
+          popup: 'rounded-4'
+        },
+        html: `
+          <div class="text-start pt-1" style="font-size: 0.88rem; line-height: 1.6;">
+            <!-- Header Modal: ID & Judul Laporan -->
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span class="badge bg-primary font-monospace px-2.5 py-1" style="font-size: 0.85rem;">${report.id}</span>
+              <h5 class="fw-bold text-dark mb-0 fs-5" style="line-height: 1.35;">
+                ${report.title}
+              </h5>
+            </div>
+
+            <!-- Informasi Barang -->
+            <div class="card p-3 bg-light rounded-3 border mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam text-primary me-1"></i> Rincian Barang Hilang</h6>
+                <span class="badge ${getStatusBadgeClass(report.status)} px-3 py-1.5 rounded-pill" style="font-size: 0.78rem;">
+                  ${getStatusLabel(report.status)}
+                </span>
+              </div>
+              <div class="row g-2 small">
+                <div class="col-6"><strong>Kategori:</strong> <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1">${report.category}</span></div>
+                <div class="col-6"><strong>Warna Dominan:</strong> <span class="text-dark fw-semibold">${report.color || '-'}</span></div>
+                <div class="col-12 mt-2"><strong>Ciri-ciri Khusus:</strong> <div class="text-muted fst-italic">"${report.features || '-'}"</div></div>
+                ${report.description ? `<div class="col-12 mt-1"><strong>Kronologi / Detail Kejadian:</strong> <div class="text-dark">${report.description}</div></div>` : ''}
+              </div>
+            </div>
+
+            <!-- Lokasi & Waktu -->
+            <div class="card p-3 bg-light rounded-3 border mb-3">
+              <h6 class="fw-bold text-dark mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Waktu & Lokasi Kejadian</h6>
+              <div class="row g-2 small">
+                <div class="col-sm-6"><strong>Gedung / Tempat:</strong> <div class="text-danger fw-semibold"><i class="bi bi-geo-alt-fill me-1"></i>${report.lastSeenLocation}</div></div>
+                <div class="col-sm-6"><strong>Tanggal & Jam Hilang:</strong> <div class="text-dark"><i class="bi bi-calendar-event me-1 text-primary"></i>${report.dateLost} ${report.approxTime ? '(' + report.approxTime + ')' : ''}</div></div>
+                ${report.createdAt ? `<div class="col-12 mt-1 text-muted small"><i class="bi bi-clock-history me-1"></i> Waktu Lapor ke Sistem: <strong>${new Date(report.createdAt).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })} WIB</strong></div>` : ''}
+              </div>
+            </div>
+
+            <!-- Data Lengkap Pelapor -->
+            <div class="card p-3 bg-light rounded-3 border mb-3">
+              <h6 class="fw-bold text-dark mb-2"><i class="bi bi-person-badge-fill text-info me-1"></i> Data Identitas Pelapor</h6>
+              <div class="row g-2 small">
+                <div class="col-sm-6"><strong>Nama Mahasiswa / Civitas:</strong> <div class="text-dark fw-bold">${report.reporterName}</div></div>
+                <div class="col-sm-6"><strong>NIM / NIP:</strong> <div class="text-dark font-monospace fw-semibold">${report.reporterNim || '-'}</div></div>
+                <div class="col-sm-6"><strong>Nomor Kontak / WhatsApp:</strong> <div>${report.reporterPhone ? `<a href="https://wa.me/${report.reporterPhone.replace(/[^0-9]/g, '')}" target="_blank" class="text-decoration-none fw-semibold text-success"><i class="bi bi-whatsapp me-1"></i>${report.reporterPhone}</a>` : '-'}</div></div>
+                <div class="col-sm-6"><strong>Akun Telegram:</strong> 
+                  <div>${cleanTele ? `<a href="https://t.me/${cleanTele}" target="_blank" class="badge bg-info bg-opacity-10 text-info border border-info-subtle text-decoration-none mt-0.5"><i class="bi bi-telegram me-1"></i>${report.reporterTelegram}</a>` : '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Analisis AI & Posko Match -->
+            ${report.matchScore ? `
+              <div class="alert alert-info p-3 rounded-3 mb-0 border-info shadow-xs">
+                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                  <strong class="text-dark"><i class="bi bi-stars text-primary me-1"></i> Analisis Kecocokan AI Engine</strong>
+                  <span class="badge bg-primary rounded-pill px-2.5 py-1">${report.matchScore}% Score Cocok</span>
+                </div>
+                ${matchedFound ? `
+                  <div class="small text-dark mt-1"><strong>Barang Temuan di Posko:</strong> ${matchedFound.title} <span class="badge bg-light text-dark border font-monospace ms-1">${matchedFound.id}</span></div>
+                  <div class="small text-secondary"><strong>Lokasi Penyimpanan Fisik:</strong> <span class="text-danger fw-semibold"><i class="bi bi-shield-shaded me-1"></i>${matchedFound.storageLocation}</span></div>
+                ` : ''}
+                ${report.matchReason ? `<div class="small text-muted mt-1 fst-italic">"Alasan AI: ${report.matchReason}"</div>` : ''}
+                ${report.adminValidationNotes ? `<div class="small text-success fw-semibold mt-2 pt-2 border-top"><strong>Catatan Petugas:</strong> "${report.adminValidationNotes}"</div>` : ''}
+              </div>
+            ` : ''}
+
+            <!-- Aksi Cepat Selesaikan / Serah Terima -->
+            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span class="small text-muted">Aksi Cepat Admin Posko:</span>
+              ${report.status !== 'resolved' ? `
+                <button type="button" onclick="Swal.close(); handleDirectCompleteReport('${report.id}', '${report.matchedItemId || ''}')" class="btn btn-sm btn-success rounded-pill px-3.5 py-1.5 fw-semibold shadow-xs">
+                  <i class="bi bi-check2-all me-1"></i> Selesaikan Laporan (Serah Terima)
+                </button>
+              ` : `
+                <span class="badge bg-dark rounded-pill px-3 py-1.5"><i class="bi bi-bag-check me-1"></i> Barang Telah Diserahterimakan (Selesai)</span>
+              `}
+            </div>
+          </div>
+        `
+      }).then((result) => {
+        if (result.isConfirmed) {
+          handleEditFullReport(report.id);
+        } else if (result.isDenied) {
+          handleDeleteReport(report.id);
+        }
+      });
+    }
+
+    async function handleDirectCompleteReport(lostReportId, foundItemId) {
+      const confirm = await showConfirmDialog({
+        title: 'Konfirmasi Serah Terima Barang',
+        text: `Apakah barang fisik untuk laporan ${lostReportId} telah selesai diserahterimakan kepada pemiliknya?`,
+        confirmButtonText: 'Ya, Selesaikan Laporan',
+        cancelButtonText: 'Batal'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      try {
+        const res = await api.completeClaim({ lostReportId, foundItemId });
+        if (res?.success) {
+          await showSuccessAlert('Laporan Selesai!', `Laporan ${lostReportId} berhasil diselesaikan dan status barang di posko telah diperbarui menjadi 'returned'.`, 2000);
+          loadReportsData();
+        } else {
+          showErrorAlert('Gagal Menyelesaikan', res?.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+
+    // CREATE: Tambah Laporan Baru oleh Admin
+    async function openCreateReportModal() {
+      const { value: formValues } = await Swal.fire({
+        title: 'Tambah Laporan Kehilangan Baru',
+        width: '600px',
+        html: `
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Nama Barang <span class="text-danger">*</span></label>
+            <input id="swal-add-title" class="form-control form-control-sm" placeholder="Misal: Dompet Kulit Cokelat / Laptop ASUS">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Kategori Barang <span class="text-danger">*</span></label>
+              <select id="swal-add-category" class="form-select form-select-sm">
+                <option value="Elektronik & Gadget">Elektronik & Gadget</option>
+                <option value="Dokumen & Kartu Identitas">Dokumen & Kartu Identitas</option>
+                <option value="Tas & Dompet">Tas & Dompet</option>
+                <option value="Kunci & Akses">Kunci & Akses</option>
+                <option value="Botol Minum & Tumbler">Botol Minum & Tumbler</option>
+                <option value="Pakaian & Aksesoris">Pakaian & Aksesoris</option>
+                <option value="Alat Tulis & Buku">Alat Tulis & Buku</option>
+                <option value="Lain-lain">Lain-lain</option>
+              </select>
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Warna Dominan</label>
+              <input id="swal-add-color" class="form-control form-control-sm" placeholder="Misal: Hitam, Biru, Cokelat">
+            </div>
+          </div>
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Lokasi Gedung Kampus UMY <span class="text-danger">*</span></label>
+            <select id="swal-add-location" class="form-select form-select-sm">
+              <option value="Gedung AR. Fachruddin A (Perpustakaan & R. Sidang)">Gedung AR. Fachruddin A (Perpustakaan & R. Sidang)</option>
+              <option value="Gedung AR. Fachruddin B (Lobby & R. Kuliah)">Gedung AR. Fachruddin B (Lobby & R. Kuliah)</option>
+              <option value="Gedung Siti Walidah (F1/F2)">Gedung Siti Walidah (F1/F2)</option>
+              <option value="Gedung Ki Bagus Hadikusumo (E1-E6)">Gedung Ki Bagus Hadikusumo (E1-E6)</option>
+              <option value="Gedung Mas Mansyur (Kedokteran & Ilmu Kesehatan)">Gedung Mas Mansyur (Kedokteran & Ilmu Kesehatan)</option>
+              <option value="Gedung Ibrahim (FTI / FEB / Lab Komputer)">Gedung Ibrahim (FTI / FEB / Lab Komputer)</option>
+              <option value="Masjid KH Ahmad Dahlan (Lantai 1 / 2)">Masjid KH Ahmad Dahlan (Lantai 1 / 2)</option>
+              <option value="Lapangan Bintang UMY">Lapangan Bintang UMY</option>
+              <option value="Student Center UMY">Student Center UMY</option>
+              <option value="Cafe 1912 / Kantin Barat UMY">Cafe 1912 / Kantin Barat UMY</option>
+              <option value="Sportorium UMY">Sportorium UMY</option>
+              <option value="Parkiran Gedung AR. Fachruddin">Parkiran Gedung AR. Fachruddin</option>
+            </select>
+          </div>
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Ciri Khusus / Deskripsi</label>
+            <textarea id="swal-add-features" class="form-control form-control-sm" rows="2" placeholder="Gantungan kunci, stiker, isi dompet, dll"></textarea>
+          </div>
+          <div class="row g-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Nama Pelapor</label>
+              <input id="swal-add-rep-name" class="form-control form-control-sm" placeholder="Nama mahasiswa / civitas">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">NIM Pelapor</label>
+              <input id="swal-add-rep-nim" class="form-control form-control-sm" placeholder="20240140xxx">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">No. WhatsApp</label>
+              <input id="swal-add-rep-phone" class="form-control form-control-sm" placeholder="08xxxxxxxxxx">
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Username Telegram</label>
+              <input id="swal-add-rep-tele" class="form-control form-control-sm" placeholder="@username">
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan Laporan',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+          const title = document.getElementById('swal-add-title').value.trim();
+          if (!title) {
+            Swal.showValidationMessage('Nama barang wajib diisi');
+            return false;
+          }
+          return {
+            title,
+            category: document.getElementById('swal-add-category').value,
+            color: document.getElementById('swal-add-color').value.trim(),
+            lastSeenLocation: document.getElementById('swal-add-location').value,
+            features: document.getElementById('swal-add-features').value.trim(),
+            reporterName: document.getElementById('swal-add-rep-name').value.trim(),
+            reporterNim: document.getElementById('swal-add-rep-nim').value.trim(),
+            reporterPhone: document.getElementById('swal-add-rep-phone').value.trim(),
+            reporterTelegram: document.getElementById('swal-add-rep-tele').value.trim(),
+            dateLost: new Date().toISOString().split('T')[0],
+            approxTime: '12:00 WIB'
+          };
+        }
+      });
+
+      if (!formValues) return;
+
+      try {
+        const res = await api.createAdminLostReport(formValues);
+        if (res?.success) {
+          await showSuccessAlert('Laporan Ditambahkan!', `Laporan ${res.data.id} berhasil dicatat ke sistem.`, 1800);
+          loadReportsData();
+        } else {
+          showErrorAlert('Gagal Menambahkan', res?.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+
+    // UPDATE: Edit Data Laporan Lengkap
+    async function handleEditFullReport(id) {
+      const report = allReports.find(r => r.id === id);
+      if (!report) return;
+
+      const { value: formValues } = await Swal.fire({
+        title: `Edit Laporan (${id})`,
+        width: '600px',
+        html: `
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Nama Barang</label>
+            <input id="swal-edit-title" class="form-control form-control-sm" value="${report.title}">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Kategori Barang</label>
+              <select id="swal-edit-category" class="form-select form-select-sm">
+                <option value="Elektronik & Gadget" ${report.category === 'Elektronik & Gadget' ? 'selected' : ''}>Elektronik & Gadget</option>
+                <option value="Dokumen & Kartu Identitas" ${report.category === 'Dokumen & Kartu Identitas' ? 'selected' : ''}>Dokumen & Kartu Identitas</option>
+                <option value="Tas & Dompet" ${report.category === 'Tas & Dompet' ? 'selected' : ''}>Tas & Dompet</option>
+                <option value="Kunci & Akses" ${report.category === 'Kunci & Akses' ? 'selected' : ''}>Kunci & Akses</option>
+                <option value="Botol Minum & Tumbler" ${report.category === 'Botol Minum & Tumbler' ? 'selected' : ''}>Botol Minum & Tumbler</option>
+                <option value="Pakaian & Aksesoris" ${report.category === 'Pakaian & Aksesoris' ? 'selected' : ''}>Pakaian & Aksesoris</option>
+                <option value="Alat Tulis & Buku" ${report.category === 'Alat Tulis & Buku' ? 'selected' : ''}>Alat Tulis & Buku</option>
+                <option value="Lain-lain" ${report.category === 'Lain-lain' ? 'selected' : ''}>Lain-lain</option>
+              </select>
+            </div>
+            <div class="col-6 text-start">
+              <label class="form-label small fw-bold">Status Penanganan</label>
+              <select id="swal-edit-status" class="form-select form-select-sm">
+                <option value="pending" ${report.status === 'pending' ? 'selected' : ''}>⏳ Menunggu (Pending)</option>
+                <option value="ai_matched" ${report.status === 'ai_matched' ? 'selected' : ''}>✨ AI Matched</option>
+                <option value="verified" ${report.status === 'verified' ? 'selected' : ''}>✅ Terverifikasi Posko</option>
+                <option value="resolved" ${report.status === 'resolved' ? 'selected' : ''}>📦 Selesai / Diambil</option>
+              </select>
+            </div>
+          </div>
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Lokasi Terakhir Dilihat</label>
+            <input id="swal-edit-location" class="form-control form-control-sm" value="${report.lastSeenLocation}">
+          </div>
+          <div class="text-start mb-2">
+            <label class="form-label small fw-bold">Ciri Khusus</label>
+            <textarea id="swal-edit-features" class="form-control form-control-sm" rows="2">${report.features}</textarea>
+          </div>
+          <div class="text-start">
+            <label class="form-label small fw-bold">Catatan Petugas Posko</label>
+            <textarea id="swal-edit-notes" class="form-control form-control-sm" rows="2" placeholder="Catatan perkembangan...">${report.adminValidationNotes || ''}</textarea>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Simpan Perubahan',
+        cancelButtonText: 'Batal',
+        preConfirm: () => {
+          return {
+            title: document.getElementById('swal-edit-title').value.trim(),
+            category: document.getElementById('swal-edit-category').value,
+            status: document.getElementById('swal-edit-status').value,
+            lastSeenLocation: document.getElementById('swal-edit-location').value.trim(),
+            features: document.getElementById('swal-edit-features').value.trim(),
+            adminValidationNotes: document.getElementById('swal-edit-notes').value.trim()
+          };
+        }
+      });
+
+      if (!formValues) return;
+
+      try {
+        const res = await api.updateLostReport(id, formValues);
+        if (res?.success) {
+          await showSuccessAlert('Laporan Diperbarui!', `Perubahan pada ${id} telah disimpan.`, 1800);
+          loadReportsData();
+        } else {
+          showErrorAlert('Gagal Memperbarui', res?.message || 'Terjadi kesalahan sistem.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+
+    // DELETE: Hapus Laporan
+    async function handleDeleteReport(id) {
+      const confirm = await showConfirmDialog({
+        title: 'Hapus Laporan Kehilangan?',
+        text: `Apakah Anda yakin ingin menghapus data laporan ${id}? Tindakan ini tidak dapat dibatalkan.`,
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      try {
+        const res = await api.deleteLostReport(id);
+        if (res?.success) {
+          await showSuccessAlert('Terhapus!', `Laporan ${id} telah dihapus dari sistem.`, 1800);
+          loadReportsData();
+        } else {
+          showErrorAlert('Gagal Menghapus', res?.message || 'Gagal menghapus laporan.');
+        }
+      } catch (err) {
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke server.');
+      }
+    }
+  </script>
+</body>
+
+</html>
