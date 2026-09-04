@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk - Lost & Found UMY AI</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body class="bg-light">
+
+  <main class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+
+        <!-- CARD LOGIN -->
+        <div class="card p-4 p-sm-5 border-0 shadow-sm rounded-4">
+
+          <!-- Header -->
+          <div class="text-center mb-4">
+            <div class="brand-icon mx-auto mb-2" style="width: 48px; height: 48px; font-size: 1.3rem;">
+              <i class="bi bi-compass-fill"></i>
+            </div>
+            <h4 class="fw-bold mb-1">Masuk ke Sistem</h4>
+            <p class="text-muted small">Lost & Found UMY Berbasis AI • Kelompok 5</p>
+          </div>
+
+          <!-- FORMULIR LOGIN WAJIB EMAIL & PASSWORD -->
+          <form id="form-login" onsubmit="handleManualLogin(event)" novalidate>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Email Kampus / Terdaftar <span
+                  class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+                <input type="email" id="login-email" class="form-control" placeholder="nama@student.ac.id" required>
+              </div>
+              <div class="invalid-feedback-custom" id="err-login-email" style="display: none;"></div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label small fw-bold">Kata Sandi <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-lock text-muted"></i></span>
+                <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+              </div>
+              <div class="invalid-feedback-custom" id="err-login-pass" style="display: none;"></div>
+            </div>
+
+            <button type="submit" id="btn-login" class="btn btn-primary w-100 py-2.5 fw-semibold rounded-3 shadow-sm">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Masuk Sekarang
+            </button>
+          </form>
+
+          <!-- Petunjuk Akun Demo untuk Pengujian -->
+          <div class="card bg-light border-0 p-3 rounded-3 mt-4 small">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle text-primary me-1"></i> Akun Pengujian Demo:
+            </div>
+            <div class="text-muted" style="font-size: 0.75rem;">
+              • <strong>Mahasiswa:</strong> <code>zaky.rizqi@student.ac.id</code><br>
+              • <strong>Admin Posko:</strong> <code>admin.lostfound@univ.ac.id</code><br>
+              • <strong>Password:</strong> <code>password123</code>
+            </div>
+          </div>
+
+          <!-- Footer Link Registrasi -->
+          <div class="text-center border-top pt-3 mt-4 small text-muted">
+            Belum memiliki akun? <a href="register.html" class="text-primary fw-bold text-decoration-none">Daftar Akun
+              Baru</a>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+
+    async function handleManualLogin(e) {
+      e.preventDefault();
+      const emailEl = document.getElementById('login-email');
+      const passEl = document.getElementById('login-password');
+      const btn = document.getElementById('btn-login');
+
+      const isEmailValid = validateField(emailEl, emailEl.value.trim().length > 3, 'Email wajib diisi.', 'err-login-email');
+      const isPassValid = validateField(passEl, passEl.value.length > 0, 'Kata sandi wajib diisi.', 'err-login-pass');
+
+      if (!isEmailValid || !isPassValid) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Memverifikasi...';
+
+      try {
+        const res = await api.login({ email: emailEl.value.trim(), password: passEl.value });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Masuk Sekarang';
+
+        if (res?.success && res.data) {
+          localStorage.setItem('laf_token', res.data.token);
+          localStorage.setItem('laf_user', JSON.stringify(res.data.user));
+
+          const user = res.data.user;
+          await showSuccessAlert('Login Berhasil!', `Selamat datang kembali, ${user.name}.`, 1500);
+
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect') || (user.role === 'admin' ? '../admin/dashboard.html' : '../user/dashboard.html');
+          window.location.replace(redirect);
+        } else {
+          showErrorAlert('Gagal Masuk', res?.message || 'Email atau kata sandi tidak cocok.');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Masuk Sekarang';
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke server backend.');
+      }
+    }
+  </script>
+</body>
+
+</html>
