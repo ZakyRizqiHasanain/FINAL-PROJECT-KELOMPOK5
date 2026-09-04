@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broadcast & Log Telegram - Admin Posko UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Khusus Admin Posko -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth(true);</script>
+<body class="bg-light">
+
+  <!-- HEADER & SIDEBAR UMY KRS STYLE -->
+  <div id="navbar-container"></div>
+
+  <!-- KONTEN UTAMA BROADCAST -->
+  <main class="umy-main-content">
+    <div class="container-fluid">
+
+      <!-- HEADER -->
+      <div class="card bg-info bg-gradient text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1.5 mb-2">
+              <i class="bi bi-telegram me-1"></i> Bot Gateway Notifikasi
+            </span>
+            <h3 class="fw-bold mb-1">Broadcast & Log Notifikasi Telegram</h3>
+            <p class="text-white opacity-90 small mb-0">Kirim pesan instan ke Telegram mahasiswa dan pantau riwayat notifikasi klaim barang yang terkirim.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button onclick="openTelegramModal()" class="btn btn-light btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-xs">
+              <i class="bi bi-chat-left-dots-fill text-primary me-1"></i> Buka Simulator Bot
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <!-- FORM BROADCAST TELEGRAM -->
+        <div class="col-lg-5">
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <h5 class="fw-bold mb-3 text-dark">
+              <i class="bi bi-megaphone-fill text-primary me-1.5"></i> Kirim Pesan Broadcast Bot
+            </h5>
+            
+            <form onsubmit="handleSendBroadcast(event)">
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Username Telegram Tujuan <span class="text-danger">*</span></label>
+                <input type="text" id="bc-target" class="form-control" placeholder="@username" value="@zakyrizqi" required>
+                <small class="text-muted" style="font-size: 0.75rem;">Pastikan diawali dengan @ (misal: @zakyrizqi)</small>
+              </div>
+
+              <!-- Template Cepat -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Pilih Template Pesan:</label>
+                <div class="d-flex flex-wrap gap-1">
+                  <button type="button" onclick="setTemplate('verified')" class="btn btn-xs btn-outline-primary rounded-pill">
+                    ✅ Verifikasi Klaim
+                  </button>
+                  <button type="button" onclick="setTemplate('pickup')" class="btn btn-xs btn-outline-success rounded-pill">
+                    📦 Siap Diambil
+                  </button>
+                  <button type="button" onclick="setTemplate('reminder')" class="btn btn-xs btn-outline-warning rounded-pill">
+                    🔔 Pengingat KTM
+                  </button>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Isi Pesan Notifikasi <span class="text-danger">*</span></label>
+                <textarea id="bc-content" class="form-control" rows="5" placeholder="Tuliskan isi notifikasi..." required></textarea>
+              </div>
+
+              <button type="submit" id="btn-submit-bc" class="btn btn-primary w-100 fw-semibold rounded-pill py-2 shadow-sm">
+                <i class="bi bi-send-fill me-1"></i> Kirim Notifikasi Telegram
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- RIWAYAT & INFO BOT -->
+        <div class="col-lg-7">
+          <div class="card p-4 border-0 shadow-sm rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-clock-history text-info me-1.5"></i> Riwayat Notifikasi Terkirim
+              </h5>
+              <button onclick="loadTelegramLogsData()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
+            </div>
+
+            <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+              <table class="table table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>Waktu</th>
+                    <th>Penerima</th>
+                    <th>Tipe & Pesan</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="telegram-logs-rows">
+                  <tr>
+                    <td colspan="4" class="text-center py-5 text-muted">
+                      <div class="spinner-border spinner-border-sm text-primary"></div> Memuat riwayat...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      renderNavbar('admin-broadcast');
+      setTemplate('verified');
+      loadTelegramLogsData();
+    });
+
+    function setTemplate(type) {
+      const textarea = document.getElementById('bc-content');
+      if (type === 'verified') {
+        textarea.value = `🔔 [LOST & FOUND UMY - TERVERIFIKASI]\nHalo Mahasiswa,\nLaporan kehilangan Anda telah diverifikasi oleh petugas posko keamanan. Silakan datang ke Posko Pusat UMY untuk pengambilan barang dengan membawa KTM asli.`;
+      } else if (type === 'pickup') {
+        textarea.value = `📦 [PEMBERITAHUAN PENGAMBILAN BARANG]\nBarang temuan yang cocok dengan deskripsi Anda saat ini tersimpan aman di Pos Satpam Gedung AR. Fachruddin A. Silakan menghubungi petugas posko.`;
+      } else if (type === 'reminder') {
+        textarea.value = `🔔 [PENGINGAT KLAIM BARANG]\nHarap membawa kartu identitas mahasiswa (KTM) atau KTP asli saat proses serah terima barang di Posko Keamanan UMY.`;
+      }
+    }
+
+    async function loadTelegramLogsData() {
+      try {
+        const res = await api.getTelegramLogs();
+        const tbody = document.getElementById('telegram-logs-rows');
+        const logs = res?.data || [];
+
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Belum ada riwayat notifikasi bot Telegram.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = logs.map(log => {
+          const cleanTele = (log.recipient || '').replace('@', '');
+          const time = new Date(log.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          const date = new Date(log.timestamp).toLocaleDateString('id-ID');
+
+          return `
+            <tr>
+              <td>
+                <div class="fw-bold">${time}</div>
+                <small class="text-muted" style="font-size: 0.7rem;">${date}</small>
+              </td>
+              <td>
+                <div class="fw-bold text-primary">${log.recipientName || 'Civitas'}</div>
+                <span class="badge bg-info bg-opacity-10 text-info font-monospace">${log.recipient}</span>
+              </td>
+              <td>
+                <span class="badge bg-secondary mb-1" style="font-size: 0.65rem;">${log.type || 'NOTIFICATION'}</span>
+                <div class="text-secondary small text-truncate" style="max-width: 260px;" title="${log.message}">${log.message}</div>
+              </td>
+              <td>
+                ${cleanTele ? `
+                  <a href="https://t.me/${cleanTele}" target="_blank" class="btn btn-xs btn-outline-info rounded-pill px-2">
+                    <i class="bi bi-telegram"></i> Chat
+                  </a>
+                ` : '-'}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loadTelegramLogsData:', err);
+      }
+    }
+
+    async function handleSendBroadcast(e) {
+      e.preventDefault();
+      const recipient = document.getElementById('bc-target').value.trim();
+      const message = document.getElementById('bc-content').value.trim();
+      const btn = document.getElementById('btn-submit-bc');
+
+      if (!recipient || !message) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Mengirim Telegram...';
+
+      try {
+        const res = await api.sendTelegramBroadcast({ recipient, message });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Kirim Notifikasi Telegram';
+
+        if (res?.success) {
+          showTelegramLiveToast(recipient, message);
+          await showSuccessAlert('Broadcast Terkirim!', `Pesan berhasil dikirimkan ke ${recipient}.`, 2000);
+          loadTelegramLogsData();
+        } else {
+          showErrorAlert('Gagal Mengirim', res?.message || 'Gagal mengirim broadcast.');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Kirim Notifikasi Telegram';
+        showErrorAlert('Terjadi Kesalahan', 'Gagal terhubung ke backend.');
+      }
+    }
+  </script>
+</body>
+</html>
