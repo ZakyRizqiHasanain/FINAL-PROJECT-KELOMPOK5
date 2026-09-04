@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chatbot Asisten - Lost & Found UMY</title>
+
+  <!-- Google Fonts, Bootstrap 5.3 & SweetAlert2 CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Guard: Wajib Login -->
+  <script src="../js/auth.js"></script>
+  <script>requireAuth();</script>
+</head>
+<body class="bg-light">
+
+  <div id="navbar-container"></div>
+
+  <main class="umy-main-content">
+    <div class="container-fluid">
+    <div class="card bg-info bg-gradient text-white p-4 rounded-4 shadow-sm mb-4 border-0">
+      <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1.5 w-auto align-self-start mb-2">
+        <i class="bi bi-robot me-1"></i> Asisten NLP Cerdas (Opsi B)
+      </span>
+      <h3 class="fw-bold mb-1">AI Chatbot Pelaporan & Pencarian</h3>
+      <p class="text-white opacity-90 small mb-0">Ceritakan barang Anda secara santai. AI akan mengekstrak data penting dan membandingkannya langsung ke inventaris posko keamanan UMY.</p>
+    </div>
+
+    <div class="row g-4">
+      <!-- KOLOM KIRI: JENDELA OBROLAN CHAT -->
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+          
+          <!-- Header Chat -->
+          <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+              <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">
+                <i class="bi bi-robot"></i>
+              </div>
+              <div>
+                <strong class="small text-dark d-block">Asisten Cerdas Lost & Found UMY</strong>
+                <span class="badge bg-primary bg-gradient rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                  <i class="bi bi-stars text-warning me-1"></i> Powered by Google Gemini AI
+                </span>
+              </div>
+            </div>
+            <button onclick="resetChat()" class="btn btn-sm btn-light border text-muted rounded-pill px-3">
+              <i class="bi bi-arrow-clockwise me-1"></i> Reset Chat
+            </button>
+          </div>
+
+          <!-- Kotak Pesan -->
+          <div class="p-3 bg-light" id="chat-box" style="height: 380px; overflow-y: auto;">
+            <div class="chat-bubble-bot mb-2">
+              👋 Halo! Saya asisten AI resmi Lost & Found UMY. Ada barang Anda yang tertinggal atau hilang di sekitar kampus? Ceritakan nama barang, warna, atau lokasi terakhir Anda melihatnya.
+            </div>
+          </div>
+
+          <!-- Saran Cepat -->
+          <div class="p-2 bg-white border-top border-bottom d-flex gap-1 overflow-x-auto text-nowrap">
+            <span class="text-muted small ps-2 me-1 align-self-center" style="font-size: 0.75rem;">Contoh:</span>
+            <button onclick="sendQuick('Laptop ASUS biru saya tertinggal di Lab Komputer Gedung Ibrahim FTI')" class="btn btn-sm btn-light border rounded-pill" style="font-size: 0.75rem;">
+              💻 Laptop di Lab FTI
+            </button>
+            <button onclick="sendQuick('Dompet coklat kulit saya jatuh di Cafe 1912 tadi siang')" class="btn btn-sm btn-light border rounded-pill" style="font-size: 0.75rem;">
+              👛 Dompet di Cafe 1912
+            </button>
+            <button onclick="sendQuick('Tumbler putih Corkcicle stiker M di Perpustakaan Gedung AR Fachruddin')" class="btn btn-sm btn-light border rounded-pill" style="font-size: 0.75rem;">
+              🥤 Tumbler di Perpus
+            </button>
+          </div>
+
+          <!-- Input Pesan -->
+          <form onsubmit="handleSendChat(event)" class="p-3 bg-white d-flex gap-2">
+            <input type="text" id="chat-input" class="form-control" placeholder="Ketik cerita barang Anda di sini..." required>
+            <button type="submit" id="btn-send-chat" class="btn btn-primary px-3 rounded-3 shadow-sm">
+              <i class="bi bi-send-fill"></i>
+            </button>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- KOLOM KANAN: HASIL EKSTRAKSI & DETEKSI AI -->
+      <div class="col-lg-5">
+        
+        <!-- Kartu Entitas Hasil Ekstraksi NLP -->
+        <div class="card p-4 border-0 shadow-sm rounded-4 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-cpu text-primary me-1"></i> Data Terstruktur (Ekstraksi AI)</h6>
+            <span class="badge bg-success-subtle text-success rounded-pill" id="ai-engine-badge"><i class="bi bi-stars text-warning me-1"></i> Gemini AI Active</span>
+          </div>
+          <div class="bg-light p-3 rounded-3 small">
+            <div class="mb-2"><strong>Nama Barang :</strong> <span id="ext-title" class="text-primary fw-bold">-</span></div>
+            <div class="mb-2"><strong>Kategori    :</strong> <span id="ext-category" class="text-dark">-</span></div>
+            <div class="mb-2"><strong>Warna       :</strong> <span id="ext-color" class="text-dark">-</span></div>
+            <div class="mb-2"><strong>Lokasi UMY  :</strong> <span id="ext-location" class="text-danger fw-semibold">-</span></div>
+            <div><strong>Ciri Fisik  :</strong> <span id="ext-features" class="text-muted">-</span></div>
+          </div>
+        </div>
+
+        <!-- Kartu Live Match Posko -->
+        <div class="card p-4 border-0 shadow-sm rounded-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-stars text-warning me-1"></i> Deteksi Instan di Posko UMY</h6>
+            <span class="badge bg-success-subtle text-success rounded-pill">Live Match</span>
+          </div>
+          <div id="live-match-result" class="text-muted small text-center py-4">
+            <i class="bi bi-chat-dots fs-3 d-block mb-2 text-secondary"></i>
+            Kirimkan pesan obrolan untuk melihat deteksi kecocokan barang aktual di posko keamanan.
+          </div>
+        </div>
+
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+  <div id="telegram-modal-container"></div>
+
+  <!-- Scripts JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/components.js"></script>
+  <script>
+    let chatConversationState = {};
+    let chatMessagesList = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderNavbar('chatbot');
+      renderFooter();
+      loadChatHistory();
+    });
+
+    function saveChatHistory() {
+      try {
+        localStorage.setItem('laf_chat_messages', JSON.stringify(chatMessagesList));
+        localStorage.setItem('laf_chat_state', JSON.stringify(chatConversationState));
+      } catch (e) {
+        console.warn('Gagal menyimpan riwayat chat:', e);
+      }
+    }
+
+    function loadChatHistory() {
+      try {
+        const rawState = localStorage.getItem('laf_chat_state');
+        const rawMessages = localStorage.getItem('laf_chat_messages');
+        
+        if (rawState) {
+          chatConversationState = JSON.parse(rawState);
+          if (chatConversationState.title && chatConversationState.title !== '-' && chatConversationState.title !== 'Barang Hilang') {
+            document.getElementById('ext-title').textContent = chatConversationState.title || '-';
+            document.getElementById('ext-category').textContent = chatConversationState.category || '-';
+            document.getElementById('ext-color').textContent = chatConversationState.color || '-';
+            document.getElementById('ext-location').textContent = chatConversationState.lastSeenLocation || '-';
+            document.getElementById('ext-features').textContent = chatConversationState.features || '-';
+          }
+        }
+
+        if (rawMessages) {
+          chatMessagesList = JSON.parse(rawMessages);
+          if (Array.isArray(chatMessagesList) && chatMessagesList.length > 0) {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            chatMessagesList.forEach(item => {
+              if (item.sender === 'user') {
+                box.innerHTML += `<div class="chat-bubble-user mb-2">${escapeHtml(item.text)}</div>`;
+              } else if (item.sender === 'bot') {
+                box.innerHTML += `<div class="chat-bubble-bot mb-2">${renderBotMessageTemplate(item.data)}</div>`;
+              }
+            });
+            box.scrollTop = box.scrollHeight;
+          }
+        }
+      } catch (e) {
+        console.warn('Gagal memuat riwayat chat:', e);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function prefillLostReport() {
+      if (chatConversationState && Object.keys(chatConversationState).length > 0) {
+        sessionStorage.setItem('laf_prefill_report', JSON.stringify(chatConversationState));
+      }
+      window.location.href = 'report-lost.html';
+    }
+
+    function goToMatches(topMatchData) {
+      const payload = {
+        query: chatConversationState,
+        topMatch: topMatchData || null
+      };
+      sessionStorage.setItem('laf_active_match', JSON.stringify(payload));
+      window.location.href = 'matches.html';
+    }
+
+    function sendQuick(text) {
+      document.getElementById('chat-input').value = text;
+      handleSendChat(new Event('submit'));
+    }
+
+    function resetChat() {
+      chatConversationState = {};
+      chatMessagesList = [];
+      localStorage.removeItem('laf_chat_messages');
+      localStorage.removeItem('laf_chat_state');
+
+      document.getElementById('chat-box').innerHTML = `
+        <div class="chat-bubble-bot mb-2">
+          👋 Halo! Obrolan direset. Ada barang yang ingin Anda laporkan atau cari di lingkungan UMY?
+        </div>
+      `;
+      document.getElementById('ext-title').textContent = '-';
+      document.getElementById('ext-category').textContent = '-';
+      document.getElementById('ext-color').textContent = '-';
+      document.getElementById('ext-location').textContent = '-';
+      document.getElementById('ext-features').textContent = '-';
+      document.getElementById('live-match-result').innerHTML = `
+        <i class="bi bi-chat-dots fs-3 d-block mb-2 text-secondary"></i>
+        Kirimkan pesan obrolan untuk melihat deteksi kecocokan barang aktual di posko keamanan.
+      `;
+    }
+
+    function renderBotMessageTemplate(d) {
+      const ext = d.extracted || {};
+      const isReady = d.isReady;
+      const topMatch = d.topMatch;
+      const replyText = d.reply || '';
+
+      // Deteksi apakah pengguna benar-benar sedang membahas/melaporkan barang atau hanya basa-basi/sapaan
+      const hasRealItem = Boolean(
+        d.hasItemDetails && 
+        ext.title && 
+        ext.title !== '-' && 
+        ext.title !== 'Barang Hilang' &&
+        !/^(halo|hai|pagi|siang|sore|malam)$/i.test(ext.title.trim())
+      );
+
+      let html = `
+        <div class="chat-response-wrapper">
+          <!-- Header Respons -->
+          <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+            <div class="d-flex align-items-center gap-1.5">
+              <span class="badge bg-primary rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="width: 20px; height: 20px;">
+                <i class="bi bi-robot text-white" style="font-size: 0.75rem;"></i>
+              </span>
+              <strong class="small text-dark">Asisten Lost & Found UMY</strong>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.65rem;">
+              <i class="bi bi-stars text-warning me-1"></i> Gemini AI
+            </span>
+          </div>
+
+          <!-- Pesan Balasan Alami -->
+          <div class="text-dark small ${hasRealItem ? 'mb-2.5' : 'mb-0'} lh-base">
+            ${escapeHtml(replyText).replace(/\n/g, '<br>')}
+          </div>
+      `;
+
+      // TAMPILKAN FORMAT KARTU RINGKASAN HANYA JIKA PENGGUNA SUDAH MENYEBUTKAN BARANG!
+      if (hasRealItem) {
+        html += `
+          <div class="bot-template-card mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom">
+              <span class="small fw-bold text-dark"><i class="bi bi-card-checklist text-primary me-1"></i> Format Ringkasan Informasi</span>
+              <span class="badge ${isReady ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-dark'} rounded-pill" style="font-size: 0.68rem;">
+                ${isReady ? '✅ Data Lengkap' : 'ℹ️ Perlu Dilengkapi'}
+              </span>
+            </div>
+            <div class="row g-2">
+              <div class="col-sm-6">
+                <span class="bot-field-label">📦 Nama Barang</span>
+                <span class="bot-field-value text-primary">${escapeHtml(ext.title || '-')}</span>
+              </div>
+              <div class="col-sm-6">
+                <span class="bot-field-label">🏷️ Kategori</span>
+                <span class="badge bg-white text-dark border fw-medium">${escapeHtml(ext.category || 'Belum Terkategori')}</span>
+              </div>
+              <div class="col-sm-6">
+                <span class="bot-field-label">🎨 Warna</span>
+                <span class="bot-field-value">${escapeHtml(ext.color || 'Belum Disebut')}</span>
+              </div>
+              <div class="col-sm-6">
+                <span class="bot-field-label">📍 Lokasi Terakhir</span>
+                <span class="bot-field-value text-danger">${escapeHtml(ext.lastSeenLocation || 'Belum Disebut')}</span>
+              </div>
+              <div class="col-12 pt-1 border-top mt-1">
+                <span class="bot-field-label">🔍 Ciri Khusus / Tanda Pengenal</span>
+                <span class="small text-muted">${escapeHtml(ext.features || '-')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Kartu Hasil Pencocokan / Call to Action
+        if (topMatch) {
+          const matchEncoded = encodeURIComponent(JSON.stringify(topMatch));
+          html += `
+            <div class="alert alert-success border-success p-2.5 mb-1 rounded-3 shadow-xs">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <strong class="small text-success"><i class="bi bi-check-circle-fill me-1"></i> Ditemukan Cocok ${topMatch.score}% di Posko!</strong>
+                <span class="badge bg-success" style="font-size: 0.65rem;">Posko UMY</span>
+              </div>
+              <div class="fw-bold text-dark small">${escapeHtml(topMatch.foundItem.title)}</div>
+              <div class="small text-muted mb-1" style="font-size: 0.75rem;">"${escapeHtml(topMatch.foundItem.features || '')}"</div>
+              <div class="small text-dark fw-semibold mb-2" style="font-size: 0.75rem;">
+                <i class="bi bi-geo-alt-fill text-danger"></i> Disimpan di: ${escapeHtml(topMatch.foundItem.storageLocation || 'Posko Satpam')}
+              </div>
+              <div class="d-flex flex-wrap gap-1.5">
+                <button onclick="goToMatches(JSON.parse(decodeURIComponent('${matchEncoded}')))" class="btn btn-sm btn-success rounded-pill px-3 py-1 small fw-semibold shadow-xs">
+                  <i class="bi bi-stars me-1"></i> Lihat Pencocokan AI
+                </button>
+                <button onclick="prefillLostReport()" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 small fw-semibold">
+                  <i class="bi bi-file-earmark-plus me-1"></i> Klaim Barang
+                </button>
+              </div>
+            </div>
+          `;
+        } else if (isReady) {
+          html += `
+            <div class="alert alert-light border p-2.5 mb-1 rounded-3 d-flex align-items-center justify-content-between gap-2">
+              <div class="small text-muted" style="font-size: 0.78rem;">
+                <i class="bi bi-shield-check text-primary me-1"></i> Data siap dijadikan laporan resmi kehilangan.
+              </div>
+              <button onclick="prefillLostReport()" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-semibold text-nowrap shadow-xs">
+                <i class="bi bi-send-check me-1"></i> Simpan Laporan
+              </button>
+            </div>
+          `;
+        }
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    async function handleSendChat(e) {
+      if (e?.preventDefault) e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      input.value = '';
+      const box = document.getElementById('chat-box');
+
+      // 1. Tampilkan pesan user & catat ke history
+      box.innerHTML += `<div class="chat-bubble-user mb-2">${escapeHtml(message)}</div>`;
+      box.scrollTop = box.scrollHeight;
+      chatMessagesList.push({ sender: 'user', text: message });
+      saveChatHistory();
+
+      // 2. Tampilkan indikator loading AI
+      const loadingId = 'loading-' + Date.now();
+      box.innerHTML += `<div id="${loadingId}" class="chat-bubble-bot text-muted mb-2"><span class="spinner-border spinner-border-sm me-1"></span> AI menganalisis deskripsi...</div>`;
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        // 3. Panggil API AI Chatbot dengan state akumulasi percakapan
+        const res = await api.sendChatbotMessage({ message, existingData: chatConversationState });
+        document.getElementById(loadingId)?.remove();
+
+        if (res?.success && res.data) {
+          const d = res.data;
+          
+          // Render pesan menggunakan Template Terstruktur Visual & simpan history
+          box.innerHTML += `<div class="chat-bubble-bot mb-2">${renderBotMessageTemplate(d)}</div>`;
+          box.scrollTop = box.scrollHeight;
+          chatMessagesList.push({ sender: 'bot', data: d });
+
+          // Simpan state HANYA jika ada item details yang nyata
+          if (d.hasItemDetails && d.extracted && d.extracted.title && d.extracted.title !== 'Barang Hilang') {
+            chatConversationState = { ...chatConversationState, ...d.extracted };
+            document.getElementById('ext-title').textContent = d.extracted.title || '-';
+            document.getElementById('ext-category').textContent = d.extracted.category || '-';
+            document.getElementById('ext-color').textContent = d.extracted.color || '-';
+            document.getElementById('ext-location').textContent = d.extracted.lastSeenLocation || '-';
+            document.getElementById('ext-features').textContent = d.extracted.features || '-';
+          }
+          saveChatHistory();
+
+          // Perbarui kartu live match posko secara real-time
+          if (d.topMatch && d.hasItemDetails) {
+            const matchEncoded = encodeURIComponent(JSON.stringify(d.topMatch));
+            document.getElementById('live-match-result').innerHTML = `
+              <div class="alert alert-success border-success p-3 text-start mb-3 rounded-3 shadow-xs">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <strong>✨ ${d.topMatch.score}% Kemiripan Cocok!</strong>
+                  <span class="badge bg-success">Posko UMY</span>
+                </div>
+                <div class="fw-bold text-dark fs-6">${escapeHtml(d.topMatch.foundItem.title)}</div>
+                <div class="small text-muted mb-2">"${escapeHtml(d.topMatch.foundItem.features || '')}"</div>
+                <div class="small text-danger fw-semibold"><i class="bi bi-geo-alt-fill"></i> Simpan: ${escapeHtml(d.topMatch.foundItem.storageLocation || 'Posko Pusat')}</div>
+              </div>
+              <div class="d-flex flex-column gap-2">
+                <button onclick="goToMatches(JSON.parse(decodeURIComponent('${matchEncoded}')))" class="btn btn-primary w-100 rounded-pill fw-semibold shadow-sm">
+                  <i class="bi bi-stars me-1"></i> Buka Detail Hasil Lengkap
+                </button>
+                <button onclick="prefillLostReport()" class="btn btn-outline-success w-100 rounded-pill fw-semibold">
+                  <i class="bi bi-file-earmark-check me-1"></i> Klaim Barang Temuan Ini
+                </button>
+              </div>
+            `;
+          } else if (d.isReady && d.hasItemDetails) {
+            document.getElementById('live-match-result').innerHTML = `
+              <div class="alert alert-light border p-3 text-start mb-2 rounded-3 text-muted">
+                <i class="bi bi-info-circle text-primary me-1"></i> Belum ada barang temuan identik di posko. Anda dapat menyimpan laporan ini agar AI terus memantau inventaris untuk Anda.
+              </div>
+              <button onclick="prefillLostReport()" class="btn btn-outline-primary btn-sm w-100 rounded-pill">
+                + Salin ke Formulir Pelaporan
+              </button>
+            `;
+          }
+        }
+      } catch (err) {
+        document.getElementById(loadingId)?.remove();
+        showErrorAlert('Gagal Menganalisis Chat', 'Koneksi ke sistem AI terputus.');
+      }
+    }
+  </script>
+</body>
+</html>
